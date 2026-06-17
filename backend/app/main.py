@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.routes import hotspots, predictions, analytics  # noqa: E402
+from app.routes import hotspots, predictions, analytics, assistant  # noqa: E402
 from app.services.hotspot_service import HotspotService  # noqa: E402
 from app.services.prediction_service import PredictionService  # noqa: E402
 from app.services.analytics_service import AnalyticsService  # noqa: E402
@@ -47,7 +47,7 @@ app.add_middleware(
 app.include_router(hotspots.router, prefix="/api/hotspots", tags=["Hotspots"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["Predictions"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
-
+app.include_router(assistant.router, prefix="/api/assistant", tags=["Assistant"])
 
 @app.get("/")
 def root():

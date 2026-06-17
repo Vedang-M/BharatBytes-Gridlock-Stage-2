@@ -15,6 +15,9 @@ export const getHeatmapData = (sampleN = 30000) =>
 export const getSchedule = (nZones = 8) =>
   api.get('/hotspots/schedule', { params: { n_zones: nZones } }).then(r => r.data);
 
+export const postChatQuery = (query, language = 'en-IN') =>
+  api.post('/assistant/chat', { query, language }).then(r => r.data);
+
 export const getSummary = () =>
   api.get('/hotspots/summary').then(r => r.data);
 
