@@ -1,0 +1,83 @@
+{
+  "model_name": "GradientBoosting",
+  "accuracy": 0.9476,
+  "precision_weighted": 0.9477,
+  "recall_weighted": 0.9476,
+  "f1_weighted": 0.9476,
+  "cohen_kappa": 0.8962,
+  "cv_f1_score": 0.944,
+  "confusion_matrix": [
+    [
+      97,
+      5,
+      0
+    ],
+    [
+      6,
+      101,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ],
+  "categories": [
+    "LOW",
+    "MODERATE",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "per_class_metrics": {
+    "LOW": {
+      "precision": 0.9417,
+      "recall": 0.951,
+      "f1": 0.9463,
+      "support": 102
+    },
+    "MODERATE": {
+      "precision": 0.9528,
+      "recall": 0.9439,
+      "f1": 0.9484,
+      "support": 107
+    },
+    "HIGH": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1
+    }
+  },
+  "feature_importance": {
+    "violation_count": 0.007,
+    "peak_pct": 0.2542,
+    "avg_severity": 0.2423,
+    "max_severity": 0.008,
+    "avg_veh_weight": 0.0703,
+    "main_road_pct": 0.1123,
+    "junction_pct": 0.2798,
+    "weekend_pct": 0.0042,
+    "unique_hours": 0.0012,
+    "n_violations_avg": 0.0149,
+    "unique_vehicle_types": 0.0009,
+    "temporal_entropy": 0.0049
+  },
+  "train_size": 840,
+  "test_size": 210,
+  "n_features": 12,
+  "feature_names": [
+    "violation_count",
+    "peak_pct",
+    "avg_severity",
+    "max_severity",
+    "avg_veh_weight",
+    "main_road_pct",
+    "junction_pct",
+    "weekend_pct",
+    "unique_hours",
+    "n_violations_avg",
+    "unique_vehicle_types",
+    "temporal_entropy"
+  ]
+}

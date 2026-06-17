@@ -1,0 +1,40 @@
+# ── Python ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+.venv/
+venv/
+env/
+
+# ── Model artifacts ────────────────────────
+model/saved_models/*.pkl
+model/saved_models/*.npz
+model/saved_models/*.png
+model/data/processed/
+
+# ── Node / Frontend ───────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── IDE ────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Env ────────────────────────────────────
+.env
+*.env.local
+
+# ── Data ───────────────────────────────────
+# Uncomment to exclude the large CSV from git:
+*.csv
