@@ -1,45 +1,42 @@
-import { useEffect } from 'react';
-import { useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { useEffect, useRef } from 'react';
 
 /**
- * Leaflet heatmap layer via leaflet-heat.
- * Loads the plugin dynamically from CDN.
+ * Mappls native heatmap layer.
+ * Replaces the old leaflet-heat CDN-loaded layer — Mappls' SDK ships its
+ * own HeatmapLayer, so there's no dynamic script injection needed here.
  */
-export default function HeatmapLayer({ points }) {
-  const map = useMap();
+export default function HeatmapLayer({ map, mapplsClassObject, points }) {
+  const heatLayerRef = useRef(null);
 
   useEffect(() => {
-    if (!points || points.length === 0) return;
+    if (!map || !mapplsClassObject || !points || points.length === 0) return;
 
-    let heatLayer;
+    const data = points.map((p) => ({ lat: p.lat, lng: p.lon }));
 
-    const applyHeat = () => {
-      const data = points.map((p) => [p.lat, p.lon, 0.6]);
-      heatLayer = L.heatLayer(data, {
-        radius: 14,
-        blur: 18,
-        minOpacity: 0.35,
-        maxZoom: 15,
-        gradient: { 0.3: 'blue', 0.55: 'lime', 0.75: 'yellow', 1.0: 'red' },
-      }).addTo(map);
-    };
-
-    // Check if L.heatLayer already loaded
-    if (L.heatLayer) {
-      applyHeat();
-    } else {
-      // Load leaflet-heat from CDN
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js';
-      script.onload = applyHeat;
-      document.head.appendChild(script);
-    }
+    heatLayerRef.current = mapplsClassObject.HeatmapLayer({
+      map,
+      data,
+      radius: 14,
+      opacity: 0.7,
+      maxIntensity: 10,
+      fitbounds: false,
+      // Mirrors the old blue -> lime -> yellow -> red leaflet.heat gradient
+      gradient: [
+        'rgba(0, 0, 255, 0)',
+        'rgba(0, 0, 255, 1)',
+        'rgba(0, 255, 0, 1)',
+        'rgba(255, 255, 0, 1)',
+        'rgba(255, 0, 0, 1)',
+      ],
+    });
 
     return () => {
-      if (heatLayer) map.removeLayer(heatLayer);
+      if (heatLayerRef.current) {
+        mapplsClassObject.removeLayer({ map, layer: heatLayerRef.current });
+        heatLayerRef.current = null;
+      }
     };
-  }, [points, map]);
+  }, [points, map, mapplsClassObject]);
 
   return null;
 }
