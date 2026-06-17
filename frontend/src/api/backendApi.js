@@ -18,6 +18,16 @@ export const getSchedule = (nZones = 8) =>
 export const postChatQuery = (query, language = 'en-IN') =>
   api.post('/assistant/chat', { query, language }).then(r => r.data);
 
+// Send audio blob to Sarvam STT → returns { transcript, language_code }
+export const postSpeechToText = (audioBlob) => {
+  const form = new FormData();
+  form.append('file', audioBlob, 'recording.wav');
+  return api.post('/assistant/stt', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  }).then(r => r.data);
+};
+
 export const getSummary = () =>
   api.get('/hotspots/summary').then(r => r.data);
 

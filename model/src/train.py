@@ -49,12 +49,69 @@ TARGET_COL = "CCS_category"
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
 
+from sklearn.neighbors import NearestNeighbors
+
 # ═══════════════════════════════════════════════════════════════
 def load_features() -> pd.DataFrame:
     csv_path = os.path.join(PROCESSED_DIR, "jan to may police violation_anonymized791b166.csv")
     df = pd.read_csv(csv_path)
     print(f"[train] Loaded {len(df):,} grid cells from {csv_path}")
     return df
+
+
+def custom_smote(X, y, target_counts, k_neighbors=2, random_state=42):
+    """
+    Apply a custom SMOTE implementation to balance the dataset.
+    """
+    np.random.seed(random_state)
+    X_resampled = [X]
+    y_resampled = [y]
+    
+    unique_classes = np.unique(y)
+    for cls in unique_classes:
+        cls_indices = np.where(y == cls)[0]
+        cls_X = X[cls_indices]
+        n_samples = len(cls_indices)
+        
+        current_count = n_samples
+        desired_count = target_counts.get(cls, current_count)
+        
+        if desired_count <= current_count:
+            continue
+            
+        n_synthetic = desired_count - current_count
+        
+        # Determine number of neighbors. Note that we need at least 2 samples to find a neighbor.
+        k = min(k_neighbors, n_samples - 1)
+        if k < 1:
+            # If only 1 sample exists in the training set (e.g. CRITICAL), duplicate it with small noise
+            synthetic_samples = []
+            for _ in range(n_synthetic):
+                noise = np.random.normal(0, 0.01, size=cls_X.shape[1])
+                synthetic_samples.append(cls_X[0] + noise)
+            X_resampled.append(np.array(synthetic_samples))
+            y_resampled.append(np.full(n_synthetic, cls))
+            continue
+            
+        nbrs = NearestNeighbors(n_neighbors=k + 1).fit(cls_X)
+        distances, indices = nbrs.kneighbors(cls_X)
+        
+        synthetic_samples = []
+        for _ in range(n_synthetic):
+            # Pick a random sample from the class
+            idx = np.random.choice(n_samples)
+            # Pick a random neighbor (excluding itself, which is index 0)
+            neighbor_idx = np.random.choice(indices[idx][1:])
+            # Interpolate
+            diff = cls_X[neighbor_idx] - cls_X[idx]
+            gap = np.random.rand()
+            synthetic = cls_X[idx] + gap * diff
+            synthetic_samples.append(synthetic)
+            
+        X_resampled.append(np.array(synthetic_samples))
+        y_resampled.append(np.full(n_synthetic, cls))
+        
+    return np.vstack(X_resampled), np.concatenate(y_resampled)
 
 
 def train_models(df: pd.DataFrame):
@@ -77,9 +134,19 @@ def train_models(df: pd.DataFrame):
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y_enc, test_size=0.2, random_state=42, stratify=y_enc,
     )
-    print(f"  Train: {len(X_train):,}   Test: {len(X_test):,}")
-    train_dist = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
-    print(f"  Train distribution: {train_dist}")
+    print(f"  Train (before SMOTE): {len(X_train):,}   Test: {len(X_test):,}")
+    train_dist_before = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
+    print(f"  Train distribution (before SMOTE): {train_dist_before}")
+
+    # Balance training set up to the majority class size (MODERATE count in training, which is 550)
+    majority_count = max(np.bincount(y_train))
+    target_counts = {cls: majority_count for cls in np.unique(y_train)}
+    print(f"  Oversampling classes to target count: {majority_count} each using Custom SMOTE")
+    X_train, y_train = custom_smote(X_train, y_train, target_counts, k_neighbors=2, random_state=42)
+
+    print(f"  Train (after SMOTE): {len(X_train):,}   Test: {len(X_test):,}")
+    train_dist_after = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
+    print(f"  Train distribution (after SMOTE): {train_dist_after}")
 
     cv = StratifiedKFold(5, shuffle=True, random_state=42)
 

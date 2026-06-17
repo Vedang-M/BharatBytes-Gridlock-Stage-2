@@ -103,9 +103,15 @@ class AnalyticsService:
             dow_hour["dow_ist"], categories=dow_order, ordered=True
         )
 
+        # Get violation density per day of week to find dynamic daily peak zones
+        day_cluster_counts = (
+            df_c.groupby(["dow_ist", "cluster"])
+            .size()
+            .reset_index(name="viol_count")
+        )
+
         forecast = []
         today = datetime.now()
-        top_cluster = clusters.iloc[0] if len(clusters) else None
 
         for i in range(n_days):
             day = today + timedelta(days=i + 1)
@@ -115,6 +121,19 @@ class AnalyticsService:
                 continue
             peak_hours = row.nlargest(3, "count")["hour_ist"].tolist()
             risk = "HIGH" if dow in ["Friday", "Saturday", "Sunday"] else "MEDIUM"
+            
+            # Find the top cluster for this specific day of the week
+            day_clusters = day_cluster_counts[day_cluster_counts["dow_ist"] == dow]
+            top_cluster = None
+            if not day_clusters.empty:
+                top_cluster_id = day_clusters.nlargest(1, "viol_count")["cluster"].iloc[0]
+                matched_rows = clusters[clusters["cluster"] == top_cluster_id]
+                if not matched_rows.empty:
+                    top_cluster = matched_rows.iloc[0]
+            
+            if top_cluster is None and len(clusters) > 0:
+                top_cluster = clusters.iloc[0]
+
             forecast.append({
                 "date": day.strftime("%a %d %b"),
                 "day": dow,

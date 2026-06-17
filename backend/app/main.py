@@ -23,7 +23,7 @@ async def lifespan(application: FastAPI):
     hs = HotspotService()
     application.state.hotspot_service = hs
     application.state.prediction_service = PredictionService()
-    application.state.analytics_service = AnalyticsService(hs.df)
+    application.state.analytics_service = AnalyticsService(hs.df_clust)
     print("✅ All services ready")
     yield
     print("👋 Shutting down")

@@ -117,11 +117,11 @@ def create_grid_features(df: pd.DataFrame = None):
     ).mul(10).round(2)
 
     def _ccs_cat(s):
-        if s >= 7:
+        if s >= 4.5:
             return "CRITICAL"
-        if s >= 4:
+        if s >= 3.0:
             return "HIGH"
-        if s >= 2:
+        if s >= 1.5:
             return "MODERATE"
         return "LOW"
 

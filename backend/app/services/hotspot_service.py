@@ -138,11 +138,15 @@ class HotspotService:
                 at_junc=("at_junction", "mean"),
                 top_police=(
                     "police_station",
-                    lambda x: x.mode().iloc[0] if len(x) else "",
+                    lambda x: str(x.mode().iloc[0]).title() if len(x) else "Unknown",
                 ),
                 top_junction=(
                     "junction_name",
-                    lambda x: x.mode().iloc[0] if len(x) else "",
+                    lambda x: (
+                        x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)].mode().iloc[0]
+                        if len(x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)]) > 0
+                        else ""
+                    )
                 ),
             )
             .reset_index()
@@ -153,6 +157,17 @@ class HotspotService:
             .rename("top_vtype")
         )
         agg = agg.merge(top_vtype, on="cluster", how="left")
+
+        # Fallback empty top_junction to police station name
+        def _get_junction_name(row):
+            jn = str(row["top_junction"]).strip()
+            if not jn or jn.upper() in ["", "NO JUNCTION", "NONE"]:
+                police = str(row["top_police"]).strip()
+                if police and police.upper() != "UNKNOWN":
+                    return f"{police} Area"
+                return "Unknown Zone"
+            return jn.title()
+        agg["top_junction"] = agg.apply(_get_junction_name, axis=1)
 
         agg["peak_pct"] = (agg["peak_viol"] / agg["violations"] * 100).round(1)
 
@@ -174,11 +189,11 @@ class HotspotService:
         ).mul(10).round(2)
 
         def _cat(s):
-            if s >= 7:
+            if s >= 4.5:
                 return "CRITICAL"
-            if s >= 4:
+            if s >= 3.0:
                 return "HIGH"
-            if s >= 2:
+            if s >= 1.5:
                 return "MODERATE"
             return "LOW"
 
@@ -239,7 +254,7 @@ class HotspotService:
         top["deploy_window"] = top.apply(_window, axis=1)
         top["rank"] = range(1, len(top) + 1)
         top["priority"] = top["CCS"].apply(
-            lambda x: "IMMEDIATE" if x >= 7 else "HIGH" if x >= 4 else "MODERATE"
+            lambda x: "IMMEDIATE" if x >= 4.5 else "HIGH" if x >= 3.0 else "MODERATE"
         )
         cols = [
             "rank", "top_junction", "archetype", "CCS", "CCS_category",
@@ -253,8 +268,8 @@ class HotspotService:
         return {
             "total_violations": int(len(self.df)),
             "total_clusters": int(len(c)),
-            "critical_zones": int((c["CCS"] >= 7).sum()),
-            "high_zones": int(((c["CCS"] >= 4) & (c["CCS"] < 7)).sum()),
+            "critical_zones": int((c["CCS"] >= 4.5).sum()),
+            "high_zones": int(((c["CCS"] >= 3.0) & (c["CCS"] < 4.5)).sum()),
             "peak_pct": round(float(self.df["is_peak"].mean() * 100), 1),
             "top10_roi": int(c.head(10)["total_roi_inr"].sum()),
         }

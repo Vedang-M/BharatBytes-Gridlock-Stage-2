@@ -89,15 +89,15 @@ export default function Dashboard() {
           <div className="card-title">CCS Distribution</div>
           <div className="chart-wrapper" style={{ height: 280 }}>
             <ResponsiveContainer>
-              <PieChart>
+              <PieChart margin={{ left: 25, right: 25, top: 10, bottom: 10 }}>
                 <Pie
                   data={ccsChartData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={95}
+                  innerRadius={40}
+                  outerRadius={70}
                   paddingAngle={2}
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: '#737373' }}
