@@ -51,7 +51,7 @@ CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
 # ═══════════════════════════════════════════════════════════════
 def load_features() -> pd.DataFrame:
-    csv_path = os.path.join(PROCESSED_DIR, "grid_features.csv")
+    csv_path = os.path.join(PROCESSED_DIR, "jan to may police violation_anonymized791b166.csv")
     df = pd.read_csv(csv_path)
     print(f"[train] Loaded {len(df):,} grid cells from {csv_path}")
     return df
