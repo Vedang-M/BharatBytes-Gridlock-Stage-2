@@ -2,8 +2,7 @@ import os
 import requests
 from fastapi import APIRouter, Request, UploadFile, File
 from pydantic import BaseModel
-# pyrefly: ignore [missing-import]
-from google import genai
+import google.generativeai as genai
 
 router = APIRouter()
 
