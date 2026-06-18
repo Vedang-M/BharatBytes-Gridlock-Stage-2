@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { postChatQuery, postSpeechToText } from '../api/backendApi';
 
 // ── Language auto-detection from Unicode script ───────────────────────────────
-// Used for typed text input. Reliable because scripts are mutually exclusive.
 function detectLangFromText(text) {
   if (/[\u0900-\u097F]/.test(text)) return 'hi-IN';  // Devanagari → Hindi
   if (/[\u0C80-\u0CFF]/.test(text)) return 'kn-IN';  // Kannada script
@@ -19,7 +18,7 @@ const LANG_LABELS = {
   'te-IN': '🇮🇳 Telugu',
 };
 
-// ── WAV playback via Blob URL (most reliable across browsers) ─────────────────
+// ── WAV playback via Blob URL ─────────────────────────────────────────────────
 function playBase64Wav(base64String, audioElementRef) {
   return new Promise((resolve, reject) => {
     try {
@@ -53,6 +52,7 @@ export default function AssistantWidget() {
       role: 'assistant',
       text: 'Hello! I am ParkIQ Copilot for Bengaluru Traffic Police. Ask or speak in any language — English, Hindi, Kannada — and I will respond accordingly.',
       lang: 'en-IN',
+      audioB64: null,
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -60,6 +60,7 @@ export default function AssistantWidget() {
   const [detectedLang, setDetectedLang] = useState('en-IN');
   const [micStatus, setMicStatus] = useState(''); // 'recording' | 'processing' | ''
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const messagesEndRef = useRef(null);
   const audioRef = useRef(null);
@@ -80,6 +81,29 @@ export default function AssistantWidget() {
     }
   };
 
+  // ── Replay audio for a specific message ────────────────────────────────────
+  const replayAudio = useCallback(async (audioB64) => {
+    if (!audioB64 || audioPlaying) return;
+    setAudioPlaying(true);
+    try {
+      await playBase64Wav(audioB64, audioRef);
+    } catch (err) {
+      console.error('[Audio] Replay error:', err);
+    } finally {
+      setAudioPlaying(false);
+    }
+  }, [audioPlaying]);
+
+  // ── Stop any currently playing audio ───────────────────────────────────────
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setAudioPlaying(false);
+  }, []);
+
   // ── Core: send query to backend ────────────────────────────────────────────
   const sendQuery = useCallback(async (text, langOverride) => {
     if (!text.trim()) return;
@@ -87,20 +111,25 @@ export default function AssistantWidget() {
     const lang = langOverride || detectLangFromText(text);
     setDetectedLang(lang);
 
-    setMessages((prev) => [...prev, { role: 'user', text, lang }]);
+    setMessages((prev) => [...prev, { role: 'user', text, lang, audioB64: null }]);
     setLoading(true);
 
     try {
       const response = await postChatQuery(text, lang);
       const assistantText = response.text || '(No response)';
       const responseLang = response.language || lang;
+      const audioB64 = response.audio_base64 || null;
 
-      setMessages((prev) => [...prev, { role: 'assistant', text: assistantText, lang: responseLang }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: assistantText, lang: responseLang, audioB64 },
+      ]);
 
-      if (response.audio_base64 && response.audio_base64.length > 0) {
+      // Auto-play audio unless muted
+      if (audioB64 && audioB64.length > 0 && !isMuted) {
         setAudioPlaying(true);
         try {
-          await playBase64Wav(response.audio_base64, audioRef);
+          await playBase64Wav(audioB64, audioRef);
         } catch (err) {
           console.error('[Audio] Playback error:', err);
         } finally {
@@ -111,12 +140,12 @@ export default function AssistantWidget() {
       console.error('[Chat]', err);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', text: `Error: ${err?.response?.data?.detail || err.message}`, lang: 'en-IN' },
+        { role: 'assistant', text: `Error: ${err?.response?.data?.detail || err.message}`, lang: 'en-IN', audioB64: null },
       ]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isMuted]);
 
   // ── Text submit ────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async (e) => {
@@ -132,7 +161,6 @@ export default function AssistantWidget() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Prefer WAV-compatible codec; fallback to default
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : 'audio/webm';
@@ -146,7 +174,6 @@ export default function AssistantWidget() {
       };
 
       recorder.onstop = async () => {
-        // Stop all tracks to release mic
         stream.getTracks().forEach((t) => t.stop());
 
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
@@ -197,6 +224,12 @@ export default function AssistantWidget() {
     } else {
       startRecording();
     }
+  };
+
+  // ── Toggle mute ────────────────────────────────────────────────────────────
+  const handleMuteToggle = () => {
+    if (audioPlaying) stopAudio();
+    setIsMuted((m) => !m);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -263,11 +296,11 @@ export default function AssistantWidget() {
               <div>
                 <div style={{ color: '#fafafa', fontWeight: 700, fontSize: '0.88rem' }}>ParkIQ Copilot</div>
                 <div style={{ color: '#F7F6C5', fontSize: '0.67rem', opacity: 0.75 }}>
-                  Gemini 2.5 Flash · Sarvam AI
+                  Powered by Sarvam AI
                 </div>
               </div>
             </div>
-            {/* Language badge — auto-detected, not a dropdown */}
+            {/* Language badge — auto-detected */}
             <div style={{
               background: '#111',
               border: '1px solid #d6d4a8',
@@ -308,17 +341,40 @@ export default function AssistantWidget() {
                 }}>
                   {msg.text}
                 </div>
-                {/* tiny language tag */}
-                {msg.lang && msg.lang !== 'en-IN' && (
-                  <div style={{
-                    fontSize: '0.6rem', color: '#555', marginTop: 2,
-                    textAlign: msg.role === 'user' ? 'right' : 'left',
-                    paddingLeft: msg.role === 'user' ? 0 : 4,
-                    paddingRight: msg.role === 'user' ? 4 : 0,
-                  }}>
-                    {LANG_LABELS[msg.lang]}
-                  </div>
-                )}
+                {/* Footer: language tag + replay button */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  paddingLeft: msg.role === 'user' ? 0 : 4,
+                  paddingRight: msg.role === 'user' ? 4 : 0,
+                }}>
+                  {msg.lang && msg.lang !== 'en-IN' && (
+                    <span style={{ fontSize: '0.6rem', color: '#555' }}>
+                      {LANG_LABELS[msg.lang]}
+                    </span>
+                  )}
+                  {/* Per-message replay button for assistant messages with audio */}
+                  {msg.role === 'assistant' && msg.audioB64 && (
+                    <button
+                      onClick={() => replayAudio(msg.audioB64)}
+                      disabled={audioPlaying}
+                      title="Replay audio"
+                      style={{
+                        background: 'none', border: 'none',
+                        color: audioPlaying ? '#555' : '#F7F6C5',
+                        cursor: audioPlaying ? 'not-allowed' : 'pointer',
+                        fontSize: '0.78rem', padding: '2px 4px',
+                        borderRadius: '6px',
+                        transition: 'all 0.15s',
+                        opacity: audioPlaying ? 0.4 : 0.8,
+                      }}
+                      onMouseEnter={(e) => { if (!audioPlaying) e.currentTarget.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = audioPlaying ? '0.4' : '0.8'; }}
+                    >
+                      🔊
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
 
@@ -401,6 +457,27 @@ export default function AssistantWidget() {
               {isRecording ? '⏹' : isProcessing ? '⏳' : '🎤'}
             </button>
 
+            {/* Speaker / Mute toggle button */}
+            <button
+              type="button"
+              id="speaker-toggle-btn"
+              onClick={handleMuteToggle}
+              title={isMuted ? 'Unmute voice responses' : 'Mute voice responses'}
+              style={{
+                width: 36, height: 36, borderRadius: '50%',
+                border: `1px solid ${isMuted ? '#ef4444' : '#d6d4a8'}`,
+                background: isMuted ? 'rgba(239,68,68,0.1)' : audioPlaying ? 'rgba(22,163,74,0.15)' : '#111',
+                color: isMuted ? '#ef4444' : audioPlaying ? '#4ade80' : '#d6d4a8',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.95rem', flexShrink: 0,
+                transition: 'all 0.2s',
+                animation: audioPlaying && !isMuted ? 'speakPulse 1.5s infinite' : 'none',
+              }}
+            >
+              {isMuted ? '🔇' : audioPlaying ? '🔊' : '🔈'}
+            </button>
+
             {/* Text input */}
             <input
               type="text"
@@ -457,7 +534,8 @@ export default function AssistantWidget() {
           0%, 100% { box-shadow: 0 4px 18px rgba(22,163,74,0.5); }
           50% { box-shadow: 0 4px 28px rgba(22,163,74,0.9); }
         }
-      `}</style>
+      `}
+      </style>
     </>
   );
 }

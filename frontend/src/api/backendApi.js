@@ -20,8 +20,9 @@ export const postChatQuery = (query, language = 'en-IN') =>
 
 // Send audio blob to Sarvam STT → returns { transcript, language_code }
 export const postSpeechToText = (audioBlob) => {
+  const ext = audioBlob.type.includes('webm') ? 'webm' : 'wav';
   const form = new FormData();
-  form.append('file', audioBlob, 'recording.wav');
+  form.append('file', audioBlob, `recording.${ext}`);
   return api.post('/assistant/stt', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 30000,
