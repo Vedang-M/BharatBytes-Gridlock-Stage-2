@@ -73,12 +73,33 @@ def predict(req: PredictionRequest):
 
 @app.get("/metrics")
 def get_metrics():
+    """Always read metrics fresh from disk."""
+    metrics_path = os.path.join(MODEL_DIR, "model_metrics.json")
+    if os.path.exists(metrics_path):
+        with open(metrics_path) as f:
+            return json.load(f)
     return model_metrics or {}
 
 
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": predictor is not None}
+
+
+@app.post("/reload")
+def reload_model():
+    """Reload the model and metrics from disk after retraining."""
+    global predictor, model_metrics
+    try:
+        predictor = HotspotPredictor()
+        metrics_path = os.path.join(MODEL_DIR, "model_metrics.json")
+        if os.path.exists(metrics_path):
+            with open(metrics_path) as f:
+                model_metrics = json.load(f)
+        print("Model reloaded successfully")
+        return {"status": "reloaded", "model_loaded": True}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 if __name__ == "__main__":

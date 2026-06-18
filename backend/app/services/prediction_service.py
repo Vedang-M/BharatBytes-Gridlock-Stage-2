@@ -34,6 +34,7 @@ class PredictionService:
 
     def _load(self):
         try:
+            # pyrefly: ignore [missing-import]
             from predict import HotspotPredictor
             self.predictor = HotspotPredictor(model_dir=MODEL_DIR)
             metrics_path = os.path.join(MODEL_DIR, "model_metrics.json")
@@ -51,7 +52,17 @@ class PredictionService:
         return self.predictor.predict(features)
 
     def get_metrics(self) -> dict | None:
+        """Always read metrics fresh from disk so retraining is reflected."""
+        metrics_path = os.path.join(MODEL_DIR, "model_metrics.json")
+        if os.path.exists(metrics_path):
+            with open(metrics_path) as f:
+                return json.load(f)
         return self.metrics
+
+    def reload(self):
+        """Reload the model and metrics from disk (after retraining)."""
+        print("[PredictionService] Reloading model from disk...")
+        self._load()
 
     def is_ready(self) -> bool:
         return self.predictor is not None

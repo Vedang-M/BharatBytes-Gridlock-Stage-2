@@ -11,12 +11,13 @@ import pandas as pd
 import joblib
 from sklearn.model_selection import (
     train_test_split,
-    GridSearchCV,
     StratifiedKFold,
 )
+from sklearn.experimental import enable_halving_search_cv  # noqa
+from sklearn.model_selection import HalvingGridSearchCV
 from sklearn.ensemble import (
     RandomForestClassifier,
-    GradientBoostingClassifier,
+    HistGradientBoostingClassifier,
 )
 from sklearn.metrics import (
     accuracy_score,
@@ -27,7 +28,9 @@ from sklearn.metrics import (
     confusion_matrix,
     cohen_kappa_score,
 )
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, RobustScaler
+# pyrefly: ignore [missing-import]
+from imblearn.over_sampling import SMOTE
 
 warnings.filterwarnings("ignore")
 
@@ -49,69 +52,12 @@ TARGET_COL = "CCS_category"
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
 
-from sklearn.neighbors import NearestNeighbors
-
 # ═══════════════════════════════════════════════════════════════
 def load_features() -> pd.DataFrame:
     csv_path = os.path.join(PROCESSED_DIR, "jan to may police violation_anonymized791b166.csv")
     df = pd.read_csv(csv_path)
     print(f"[train] Loaded {len(df):,} grid cells from {csv_path}")
     return df
-
-
-def custom_smote(X, y, target_counts, k_neighbors=2, random_state=42):
-    """
-    Apply a custom SMOTE implementation to balance the dataset.
-    """
-    np.random.seed(random_state)
-    X_resampled = [X]
-    y_resampled = [y]
-    
-    unique_classes = np.unique(y)
-    for cls in unique_classes:
-        cls_indices = np.where(y == cls)[0]
-        cls_X = X[cls_indices]
-        n_samples = len(cls_indices)
-        
-        current_count = n_samples
-        desired_count = target_counts.get(cls, current_count)
-        
-        if desired_count <= current_count:
-            continue
-            
-        n_synthetic = desired_count - current_count
-        
-        # Determine number of neighbors. Note that we need at least 2 samples to find a neighbor.
-        k = min(k_neighbors, n_samples - 1)
-        if k < 1:
-            # If only 1 sample exists in the training set (e.g. CRITICAL), duplicate it with small noise
-            synthetic_samples = []
-            for _ in range(n_synthetic):
-                noise = np.random.normal(0, 0.01, size=cls_X.shape[1])
-                synthetic_samples.append(cls_X[0] + noise)
-            X_resampled.append(np.array(synthetic_samples))
-            y_resampled.append(np.full(n_synthetic, cls))
-            continue
-            
-        nbrs = NearestNeighbors(n_neighbors=k + 1).fit(cls_X)
-        distances, indices = nbrs.kneighbors(cls_X)
-        
-        synthetic_samples = []
-        for _ in range(n_synthetic):
-            # Pick a random sample from the class
-            idx = np.random.choice(n_samples)
-            # Pick a random neighbor (excluding itself, which is index 0)
-            neighbor_idx = np.random.choice(indices[idx][1:])
-            # Interpolate
-            diff = cls_X[neighbor_idx] - cls_X[idx]
-            gap = np.random.rand()
-            synthetic = cls_X[idx] + gap * diff
-            synthetic_samples.append(synthetic)
-            
-        X_resampled.append(np.array(synthetic_samples))
-        y_resampled.append(np.full(n_synthetic, cls))
-        
-    return np.vstack(X_resampled), np.concatenate(y_resampled)
 
 
 def train_models(df: pd.DataFrame):
@@ -127,7 +73,7 @@ def train_models(df: pd.DataFrame):
     y_enc = le.transform(y)
 
     # Scale features
-    scaler = StandardScaler()
+    scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X)
 
     # Stratified 80 / 20 split
@@ -138,11 +84,18 @@ def train_models(df: pd.DataFrame):
     train_dist_before = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
     print(f"  Train distribution (before SMOTE): {train_dist_before}")
 
-    # Balance training set up to the majority class size (MODERATE count in training, which is 550)
-    majority_count = max(np.bincount(y_train))
-    target_counts = {cls: majority_count for cls in np.unique(y_train)}
-    print(f"  Oversampling classes to target count: {majority_count} each using Custom SMOTE")
-    X_train, y_train = custom_smote(X_train, y_train, target_counts, k_neighbors=2, random_state=42)
+    print(f"  Oversampling classes using imbalanced-learn SMOTE")
+    # SMOTE requires at least k_neighbors + 1 samples per class. 
+    # If a class (like CRITICAL) has only 1 sample, we must duplicate it first.
+    from imblearn.over_sampling import RandomOverSampler
+    counts = pd.Series(y_train).value_counts().to_dict()
+    ros_strategy = {k: max(v, 3) for k, v in counts.items()}
+    ros = RandomOverSampler(sampling_strategy=ros_strategy, random_state=42)
+    X_train, y_train = ros.fit_resample(X_train, y_train)
+
+    # Now apply SMOTE safely
+    smote = SMOTE(random_state=42, k_neighbors=2)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
 
     print(f"  Train (after SMOTE): {len(X_train):,}   Test: {len(X_test):,}")
     train_dist_after = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
@@ -158,31 +111,30 @@ def train_models(df: pd.DataFrame):
         "min_samples_split": [2, 5],
         "class_weight": ["balanced"],
     }
-    rf_cv = GridSearchCV(
+    rf_cv = HalvingGridSearchCV(
         RandomForestClassifier(random_state=42, n_jobs=-1),
-        rf_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0,
+        rf_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0, random_state=42, factor=2
     )
     rf_cv.fit(X_train, y_train)
     print(f"  Best CV F1: {rf_cv.best_score_:.4f}  params={rf_cv.best_params_}")
 
-    # ── Gradient Boosting ──────────────────────────────────
-    print("\n🚀 Training Gradient Boosting …")
+    # ── Hist Gradient Boosting ──────────────────────────────────
+    print("\n🚀 Training Hist Gradient Boosting …")
     gbt_grid = {
-        "n_estimators": [100, 200],
+        "max_iter": [100, 200],
         "max_depth": [3, 5, 7],
         "learning_rate": [0.05, 0.1],
-        "subsample": [0.8, 1.0],
     }
-    gbt_cv = GridSearchCV(
-        GradientBoostingClassifier(random_state=42),
-        gbt_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0,
+    gbt_cv = HalvingGridSearchCV(
+        HistGradientBoostingClassifier(random_state=42, class_weight='balanced'),
+        gbt_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0, random_state=42, factor=2
     )
     gbt_cv.fit(X_train, y_train)
     print(f"  Best CV F1: {gbt_cv.best_score_:.4f}  params={gbt_cv.best_params_}")
 
     # ── Pick winner ────────────────────────────────────────
     if gbt_cv.best_score_ >= rf_cv.best_score_:
-        best_model, best_name, best_cv = gbt_cv.best_estimator_, "GradientBoosting", gbt_cv.best_score_
+        best_model, best_name, best_cv = gbt_cv.best_estimator_, "HistGradientBoosting", gbt_cv.best_score_
     else:
         best_model, best_name, best_cv = rf_cv.best_estimator_, "RandomForest", rf_cv.best_score_
     print(f"\n✅ Winner: {best_name}  (CV F1 = {best_cv:.4f})")
@@ -217,6 +169,17 @@ def train_models(df: pd.DataFrame):
         importance = dict(
             zip(FEATURE_COLS, best_model.feature_importances_.round(4).tolist())
         )
+    else:
+        # Fallback: permutation importance (works for any estimator)
+        from sklearn.inspection import permutation_importance
+        perm_result = permutation_importance(
+            best_model, X_test, y_test,
+            n_repeats=10, random_state=42, scoring="f1_weighted",
+        )
+        importance = dict(
+            zip(FEATURE_COLS, perm_result.importances_mean.round(4).tolist())
+        )
+        print("  (Used permutation importance as fallback)")
 
     metrics = {
         "model_name":        best_name,

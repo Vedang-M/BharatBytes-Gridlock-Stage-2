@@ -7,3 +7,4 @@ seaborn>=0.12
 fastapi>=0.110
 uvicorn[standard]>=0.29
 pydantic>=2.0
+imbalanced-learn>=0.11

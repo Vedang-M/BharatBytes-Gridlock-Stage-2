@@ -28,3 +28,11 @@ def forecast(request: Request):
     hs = request.app.state.hotspot_service
     ans = request.app.state.analytics_service
     return ans.get_forecast(hs.clusters)
+
+
+@router.post("/reload")
+def reload_model(request: Request):
+    """Reload the trained model from disk after retraining."""
+    svc = request.app.state.prediction_service
+    svc.reload()
+    return {"status": "reloaded", "ready": svc.is_ready()}

@@ -192,10 +192,10 @@ export default function ModelScores() {
 
       <div className="flat-card" style={{ marginBottom: 24 }}>
         <div className="card-title">Feature Importance</div>
-        {metrics.feature_importance ? (
+        {metrics.feature_importance && Object.keys(metrics.feature_importance).length > 0 ? (
           <FeatureImportanceBars features={metrics.feature_importance} />
         ) : (
-          <p style={{ color: 'var(--text-muted)' }}>No data available</p>
+          <p style={{ color: 'var(--text-muted)' }}>No data available — retrain the model to generate feature importance.</p>
         )}
       </div>
     </div>
