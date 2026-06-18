@@ -56,7 +56,7 @@ def generate_speech(text: str, language_code: str) -> str:
     """Generate TTS audio via Sarvam AI bulbul:v3. Returns base64-encoded WAV string."""
     key = _sarvam_key()
     if not key:
-        print("[TTS] No SARVAM_API_KEY configured – skipping TTS")
+        print("[TTS] No SARVAM_API_KEY configured - skipping TTS")
         return ""
 
     # bulbul:v3 speaker voices — 'meera' is v2-only; v3 default is 'shubh'
@@ -98,7 +98,7 @@ def generate_speech(text: str, language_code: str) -> str:
         audios = data.get("audios", [])
         if audios:
             audio_b64 = audios[0]
-            print(f"[TTS] Success – audio base64 length: {len(audio_b64)} chars")
+            print(f"[TTS] Success - audio base64 length: {len(audio_b64)} chars")
             return audio_b64
         else:
             print(f"[TTS] API returned no audio. Full response keys: {list(data.keys())}")
@@ -137,7 +137,7 @@ def _get_preferred_models():
                 candidates.append(p)
         return candidates
     except Exception as e:
-        print(f"[Gemini] list_models failed: {e} – returning preferred list")
+        print(f"[Gemini] list_models failed: {e} - returning preferred list")
         return preferred
 
 

@@ -43,9 +43,9 @@ def _load():
         if os.path.exists(metrics_path):
             with open(metrics_path) as f:
                 model_metrics = json.load(f)
-        print("✅  Model API ready on :8001")
+        print("Model API ready on :8001")
     except Exception as e:
-        print(f"⚠️  Model not loaded: {e}. Run model training first.")
+        print(f"Model not loaded: {e}. Run model training first.")
 
 
 # ── Request schema ─────────────────────────────────────────────

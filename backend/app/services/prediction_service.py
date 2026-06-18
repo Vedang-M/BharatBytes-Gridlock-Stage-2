@@ -40,10 +40,10 @@ class PredictionService:
             if os.path.exists(metrics_path):
                 with open(metrics_path) as f:
                     self.metrics = json.load(f)
-            print("[PredictionService] Model loaded ✅")
+            print("[PredictionService] Model loaded successfully")
         except Exception as e:
             print(f"[PredictionService] Model not available: {e}")
-            print("  → Run  cd model/src && python train.py  first")
+            print("  -> Run  cd model/src && python train.py  first")
 
     def predict(self, features: dict) -> dict | None:
         if self.predictor is None:
