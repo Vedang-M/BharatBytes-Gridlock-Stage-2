@@ -51,7 +51,19 @@ class HotspotService:
         csv_path = os.path.abspath(csv_path)
         print(f"[HotspotService] Loading CSV: {csv_path}")
         self.df = self._load(csv_path)
-        self.df_clust, self.clusters = self._cluster(self.df)
+        cache_path = os.path.join(os.path.dirname(__file__), "hotspot_cache.pkl")
+        if os.path.exists(cache_path):
+            print(f"[HotspotService] Loading cached clusters from {cache_path}")
+            import pickle
+            with open(cache_path, "rb") as f:
+                self.df_clust, self.clusters = pickle.load(f)
+        else:
+            print("[HotspotService] Running DBSCAN...")
+            self.df_clust, self.clusters = self._cluster(self.df)
+            print(f"[HotspotService] Saving cache to {cache_path}")
+            import pickle
+            with open(cache_path, "wb") as f:
+                pickle.dump((self.df_clust, self.clusters), f)
 
     # ── Load & preprocess ──────────────────────────────────
     def _load(self, path: str) -> pd.DataFrame:
@@ -118,7 +130,7 @@ class HotspotService:
             min_samples=min_samples,
             algorithm="ball_tree",
             metric="haversine",
-            n_jobs=-1,
+            n_jobs=1,
         ).fit_predict(np.radians(coords))
 
         df = df.copy()
