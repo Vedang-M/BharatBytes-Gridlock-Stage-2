@@ -1,3 +1,12 @@
+"""
+ParkIQ Assistant – 100% Sarvam AI powered
+  • Chat:      Sarvam Chat Completions (sarvam-30b)
+  • STT:       Sarvam saaras:v3
+  • Translate: Sarvam mayura:v1
+  • TTS:       Sarvam bulbul:v3
+No Google / Gemini dependency.
+"""
+
 import os
 import requests
 from fastapi import APIRouter, Request, UploadFile, File
@@ -6,12 +15,28 @@ import google.genai as genai
 
 router = APIRouter()
 
+# ── Constants ────────────────────────────────────────────────────────────────
+SARVAM_CHAT_URL = "https://api.sarvam.ai/v1/chat/completions"
+SARVAM_TRANSLATE_URL = "https://api.sarvam.ai/translate"
+SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
+SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 
+LANG_NAMES = {
+    "en-IN": "English",
+    "hi-IN": "Hindi",
+    "kn-IN": "Kannada",
+    "ta-IN": "Tamil",
+    "te-IN": "Telugu",
+}
+
+
+# ── Pydantic models ──────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     query: str
     language: str = "en-IN"
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def _sarvam_key() -> str:
     return os.getenv("SARVAM_API_KEY", "").strip('"').strip("'")
 
@@ -23,15 +48,80 @@ def _sarvam_headers() -> dict:
     }
 
 
-def translate_text(text: str, target_lang: str) -> str:
-    """Translate English text to the target language via Sarvam AI."""
+# ── Sarvam Chat Completions (LLM) ────────────────────────────────────────────
+def generate_chat_response(system_prompt: str, user_query: str) -> str:
+    """
+    Generate a chat response via Sarvam AI's OpenAI-compatible endpoint.
+    Uses sarvam-30b with reasoning_effort="low" and max_tokens=2048 to prevent
+    the model from exhausting the token limit during its reasoning process.
+    """
     key = _sarvam_key()
-    if target_lang == "en-IN" or not key:
-        return text
+    if not key:
+        return "Configuration Error: SARVAM_API_KEY is missing."
+
+    payload = {
+        "model": "sarvam-30b",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_query},
+        ],
+        "temperature": 0.4,
+        "max_tokens": 2048,
+        "reasoning_effort": "low",
+    }
+
+    try:
+        res = requests.post(
+            SARVAM_CHAT_URL,
+            json=payload,
+            headers=_sarvam_headers(),
+            timeout=30,
+        )
+        print(f"[Sarvam LLM] HTTP {res.status_code}")
+        if res.status_code != 200:
+            print(f"[Sarvam LLM] Error: {res.text[:400]}")
+            res.raise_for_status()
+
+        data = res.json()
+        choices = data.get("choices", [])
+        if not choices:
+            print(f"[Sarvam LLM] No choices returned. Full response: {str(data)[:500]}")
+            return "I'm sorry, the AI service did not return a response. Please try again."
+
+        message = choices[0].get("message", {})
+        content = message.get("content")
+
+        if not content:
+            # Check fallback fields in case of different API shapes
+            content = message.get("text") or choices[0].get("text") or ""
+            print(f"[Sarvam LLM] content was None/empty, fallback text length: {len(content)}")
+
+        if not content:
+            print(f"[Sarvam LLM] Empty content. Full message: {message}")
+            return "I'm sorry, the AI could not generate a response. Please try again."
+
+        return content.strip()
+    except Exception as e:
+        print(f"[Sarvam LLM Error] {type(e).__name__}: {e}")
+        return f"LLM Error: {e}"
+
+
+# ── Sarvam Translate ──────────────────────────────────────────────────────────
+def translate_text_with_detection(text: str, source_lang: str, target_lang: str) -> tuple[str, str]:
+    """
+    Translate text between languages via Sarvam AI mayura:v1.
+    Returns a tuple of (translated_text, detected_source_language).
+    """
+    key = _sarvam_key()
+    if not key:
+        return text, source_lang
+
+    if source_lang != "auto" and source_lang == target_lang:
+        return text, source_lang
 
     payload = {
         "input": text,
-        "source_language_code": "en-IN",
+        "source_language_code": source_lang,
         "target_language_code": target_lang,
         "speaker_gender": "Female",
         "mode": "formal",
@@ -39,27 +129,29 @@ def translate_text(text: str, target_lang: str) -> str:
     }
     try:
         res = requests.post(
-            "https://api.sarvam.ai/translate",
+            SARVAM_TRANSLATE_URL,
             json=payload,
             headers=_sarvam_headers(),
             timeout=15,
         )
         res.raise_for_status()
-        return res.json().get("translated_text", text)
+        data = res.json()
+        translated = data.get("translated_text", text)
+        detected = data.get("source_language_code", source_lang)
+        return translated, detected
     except Exception as e:
         print(f"[Sarvam Translate Error] {e}")
-        return text
+        return text, source_lang
 
 
+# ── Sarvam TTS ────────────────────────────────────────────────────────────────
 def generate_speech(text: str, language_code: str) -> str:
-    """Generate TTS audio via Sarvam AI bulbul:v3. Returns base64-encoded WAV string."""
+    """Generate TTS audio via Sarvam AI bulbul:v3. Returns base64-encoded WAV."""
     key = _sarvam_key()
     if not key:
-        print("[TTS] No SARVAM_API_KEY configured - skipping TTS")
+        print("[TTS] No SARVAM_API_KEY – skipping")
         return ""
 
-    # bulbul:v3 speaker voices — 'meera' is v2-only; v3 default is 'shubh'
-    # Female Indian voices for v3: ritu, priya, neha, pooja, rohan, simran...
     speaker_map = {
         "en-IN": "ritu",
         "hi-IN": "ritu",
@@ -67,87 +159,48 @@ def generate_speech(text: str, language_code: str) -> str:
         "ta-IN": "ritu",
         "te-IN": "ritu",
     }
-    speaker = speaker_map.get(language_code, "shubh")
+    speaker = speaker_map.get(language_code, "ritu")
 
-    # Sarvam v3 limit: 2500 chars; trim safely
+    # bulbul:v3 limit ≈ 2500 chars; trim safely
     trimmed = text[:2000] if len(text) > 2000 else text
 
-    # bulbul:v3 request – uses "text" (not "inputs"), no pitch/loudness/enable_preprocessing
     payload = {
         "text": trimmed,
         "target_language_code": language_code,
         "speaker": speaker,
         "model": "bulbul:v3",
         "pace": 1.0,
-        "output_audio_codec": "wav",   # explicit WAV so browser can decode reliably
+        "output_audio_codec": "wav",
     }
     try:
         res = requests.post(
-            "https://api.sarvam.ai/text-to-speech",
+            SARVAM_TTS_URL,
             json=payload,
             headers=_sarvam_headers(),
             timeout=25,
         )
         print(f"[TTS] HTTP {res.status_code}")
         if res.status_code != 200:
-            print(f"[TTS] Error body: {res.text[:300]}")
+            print(f"[TTS] Error: {res.text[:300]}")
             res.raise_for_status()
 
         data = res.json()
         audios = data.get("audios", [])
         if audios:
-            audio_b64 = audios[0]
-            print(f"[TTS] Success - audio base64 length: {len(audio_b64)} chars")
-            return audio_b64
+            return audios[0]
         else:
-            print(f"[TTS] API returned no audio. Full response keys: {list(data.keys())}")
+            print(f"[TTS] No audio in response. Keys: {list(data.keys())}")
     except Exception as e:
         print(f"[Sarvam TTS Error] {type(e).__name__}: {e}")
     return ""
 
 
-def _get_preferred_models():
-    """Returns a list of model names in preference order."""
-    # gemini-2.5-flash is the primary model requested by the user.
-    preferred = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-    ]
-    try:
-        available = [
-            m.name.replace("models/", "")
-            for m in genai.list_models()
-            if "generateContent" in m.supported_generation_methods
-        ]
-        print(f"[Gemini] Available models: {available}")
-        
-        candidates = []
-        for p in preferred:
-            if p in available:
-                candidates.append(p)
-        for a in available:
-            if a not in candidates:
-                candidates.append(a)
-        
-        # Ensure preferred are included even if listing failed to return them
-        for p in preferred:
-            if p not in candidates:
-                candidates.append(p)
-        return candidates
-    except Exception as e:
-        print(f"[Gemini] list_models failed: {e} - returning preferred list")
-        return preferred
-
-
-# ──────────────────────────────────────────────────────────────────
-# Sarvam STT endpoint
-# ──────────────────────────────────────────────────────────────────
+# ── STT endpoint ──────────────────────────────────────────────────────────────
 @router.post("/stt")
 async def speech_to_text_sarvam(file: UploadFile = File(...)):
     """
-    Convert speech audio to text using Sarvam AI saarika:v2 STT model.
-    Returns the transcript and the auto-detected language code.
+    Convert speech audio to text using Sarvam AI saaras:v3.
+    Returns { transcript, language_code }.
     """
     key = _sarvam_key()
     if not key:
@@ -156,31 +209,44 @@ async def speech_to_text_sarvam(file: UploadFile = File(...)):
     audio_bytes = await file.read()
     print(f"[STT] Received audio: {len(audio_bytes)} bytes, type={file.content_type}")
 
+    filename = file.filename or "audio.wav"
+    content_type = file.content_type or "application/octet-stream"
+
+    # Map browser webm/opus types to application/octet-stream to bypass Sarvam's MIME validator
+    if "webm" in content_type or "opus" in content_type:
+        content_type = "application/octet-stream"
+        if not filename.endswith(".webm") and not filename.endswith(".bin"):
+            filename = "audio.webm"
+    elif "wav" in content_type and not filename.endswith(".wav"):
+        filename = "audio.wav"
+
     try:
         res = requests.post(
-            "https://api.sarvam.ai/speech-to-text",
+            SARVAM_STT_URL,
             headers={"api-subscription-key": key},
-            files={"file": (file.filename or "audio.wav", audio_bytes, file.content_type or "audio/wav")},
-            data={"model": "saarika:v2", "with_timestamps": "false"},
+            files={"file": (filename, audio_bytes, content_type)},
+            data={"model": "saaras:v3", "mode": "transcribe", "language_code": "unknown"},
             timeout=25,
         )
         print(f"[STT] HTTP {res.status_code}")
         if res.status_code != 200:
-            print(f"[STT] Error body: {res.text[:300]}")
+            print(f"[STT] Error: {res.text[:300]}")
             res.raise_for_status()
+
         data = res.json()
         transcript = data.get("transcript", "")
         language_code = data.get("language_code", "en-IN")
-        print(f"[STT] Detected lang={language_code}, transcript='{transcript[:60]}'")
+        print(f"[STT] lang={language_code}, text='{transcript[:60]}'")
         return {"transcript": transcript, "language_code": language_code}
     except Exception as e:
         print(f"[STT Error] {type(e).__name__}: {e}")
         return {"transcript": "", "language_code": "en-IN", "error": str(e)}
 
 
+# ── Chat endpoint ─────────────────────────────────────────────────────────────
 @router.post("/chat")
 async def chat_with_assistant(request: Request, payload: ChatRequest):
-    # ── 1. Validate services ──────────────────────────────────────────────────
+    # ── 1. Validate hotspot service ───────────────────────────────────────────
     try:
         hs = request.app.state.hotspot_service
     except Exception as e:
@@ -190,19 +256,10 @@ async def chat_with_assistant(request: Request, payload: ChatRequest):
             "language": payload.language,
         }
 
-    gemini_key = os.getenv("GEMINI_API_KEY", "").strip('"').strip("'")
-    if not gemini_key:
+    sarvam_key = _sarvam_key()
+    if not sarvam_key:
         return {
-            "text": "Configuration Error: GEMINI_API_KEY is missing from .env",
-            "audio_base64": "",
-            "language": payload.language,
-        }
-
-    try:
-        genai.configure(api_key=gemini_key)
-    except Exception as e:
-        return {
-            "text": f"Configuration Error: Failed to configure Gemini. {e}",
+            "text": "Configuration Error: SARVAM_API_KEY is missing from .env",
             "audio_base64": "",
             "language": payload.language,
         }
@@ -219,13 +276,21 @@ async def chat_with_assistant(request: Request, payload: ChatRequest):
             "language": payload.language,
         }
 
-    # ── 3. Build system prompt (Gemini ALWAYS responds in English) ──────────────
-    # Language adaptation is done by Sarvam (translate + TTS), not Gemini.
-    context_prompt = f"""You are ParkIQ, an intelligent AI assistant for the Bengaluru Traffic Police.
-You answer questions based ONLY on the following parsed data from our DBSCAN clustering and CCS scoring models.
+    # ── 3. Translate input query to English (en-IN) & auto-detect language ────
+    translated_query, detected_lang = translate_text_with_detection(payload.query, "auto", "en-IN")
+    
+    # Fallback to payload language if detected language is unrecognized or not supported
+    if not detected_lang or detected_lang not in LANG_NAMES:
+        detected_lang = payload.language or "en-IN"
+
+    lang_name = LANG_NAMES.get(detected_lang, "English")
+
+    # ── 4. Build system prompt ────────────────────────────────────────────────
+    system_prompt = f"""You are ParkIQ, an intelligent AI copilot for the Bengaluru Traffic Police.
+You answer questions based ONLY on the following parsed data from DBSCAN clustering and CCS scoring models.
 If the user asks something not covered by the data, politely say you don't know based on current data.
-Be concise, professional, actionable, and data-driven. Keep answers under 120 words.
-Always respond in English — translation is handled downstream by Sarvam AI.
+Be concise, professional, actionable, and data-driven. Kindly add the names of the officers and inspectors of the particular division/junction only if available.Keep answers under 120 words. Avoid using Astricks in text randomly.
+Always respond in English. Translation to {lang_name} is handled by a downstream service.
 
 === DATA SUMMARY ===
 Total Violations: {summary.get('total_violations')}
@@ -237,61 +302,42 @@ Peak Hour Percentage: {summary.get('peak_pct')}%
 === TOP HOTSPOTS ===
 """
     for h in hotspots:
-        context_prompt += (
+        system_prompt += (
             f"- {h.get('top_junction', 'Unknown')}: CCS {h.get('CCS')}/10 "
             f"({h.get('CCS_category')}), Peak: {h.get('peak_pct')}%, Violations: {h.get('violations')}\n"
         )
 
-    context_prompt += "\n=== DEPLOYMENT SCHEDULE ===\n"
+    system_prompt += "\n=== DEPLOYMENT SCHEDULE ===\n"
     for s in schedule:
-        context_prompt += (
+        system_prompt += (
             f"- {s.get('top_junction')}: {s.get('deploy_window')} (Priority: {s.get('priority')})\n"
         )
 
-    context_prompt += f"\nUser Query: {payload.query}"
+    # ── 5. Generate LLM response in English ───────────────────────────────────
+    english_answer = generate_chat_response(system_prompt, translated_query)
 
-    # ── 4. Generate Gemini response in English ───────────────────────────────────
-    candidates = _get_preferred_models()
-    english_answer = None
-    last_error = None
-
-    for model_name in candidates:
-        try:
-            print(f"[Gemini] Attempting generation with {model_name}...")
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(context_prompt)
-            english_answer = response.text.strip()
-            print(f"[Gemini] Success using {model_name}. Response length: {len(english_answer)} chars")
-            break
-        except Exception as e:
-            last_error = e
-            print(f"[Gemini Error] Failed with {model_name}: {e}")
-            continue
-
-    if not english_answer:
+    if english_answer.startswith("LLM Error:") or english_answer.startswith("Configuration Error:"):
         return {
-            "text": f"Gemini Error: All models failed. Last error: {last_error}",
+            "text": english_answer,
             "audio_base64": "",
-            "language": payload.language,
+            "language": detected_lang,
         }
 
-    # ── 5. Sarvam Translate (English → target language) ──────────────────────
-    # Sarvam handles ALL language adaptation — translation + TTS voice.
-    try:
-        final_text = translate_text(english_answer, payload.language)
-    except Exception as e:
+    # ── 6. Translate English response back to detected user language ──────────
+    if detected_lang != "en-IN":
+        final_text, _ = translate_text_with_detection(english_answer, "en-IN", detected_lang)
+    else:
         final_text = english_answer
-        print(f"[Translation Error] {e}")
 
-    # ── 6. Sarvam TTS (bulbul:v3 → spoken audio in target language) ─────────
+    # ── 7. Generate TTS audio in the target language ──────────────────────────
     audio_base64 = ""
     try:
-        audio_base64 = generate_speech(final_text, payload.language)
+        audio_base64 = generate_speech(final_text, detected_lang)
     except Exception as e:
         print(f"[TTS top-level error] {e}")
 
     return {
         "text": final_text,
         "audio_base64": audio_base64,
-        "language": payload.language,
+        "language": detected_lang,
     }

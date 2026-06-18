@@ -32,7 +32,7 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(
     title="ParkIQ Backend API",
-    version="1.0.0",
+    version="1.0.1",  # Triggering reload
     description="Parking-Induced Congestion Intelligence – Bengaluru Traffic Police",
     lifespan=lifespan,
 )

@@ -38,3 +38,6 @@ frontend/.vite/
 # ── Data ───────────────────────────────────
 # Uncomment to exclude the large CSV from git:
 *.csv
+
+# Logs
+*.log

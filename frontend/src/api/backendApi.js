@@ -23,16 +23,13 @@ export const postChatQuery = (query, language = "en-IN") =>
   api.post("/assistant/chat", { query, language }).then((r) => r.data);
 
 export const postSpeechToText = (audioBlob) => {
+  const ext = audioBlob.type.includes('webm') ? 'webm' : 'wav';
   const form = new FormData();
-  form.append("file", audioBlob, "recording.wav");
-
-  return api
-    .post("/assistant/stt", form, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    })
-    .then((r) => r.data);
+  form.append('file', audioBlob, `recording.${ext}`);
+  return api.post('/assistant/stt', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  }).then(r => r.data);
 };
 
 export const getSummary = () =>
