@@ -199,26 +199,28 @@ export default function Dashboard() {
             Deployment Schedule
           </div>
           {schedule.length > 0 ? (
-            <table className="data-table">
-              <thead>
-                <tr><th>Zone</th><th>Window</th><th>Priority</th></tr>
-              </thead>
-              <tbody>
-                {schedule.map((s, i) => (
-                  <tr key={i}>
-                    <td style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {(s.top_junction || '').slice(0, 22)}
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.deploy_window}</td>
-                    <td>
-                      <span className={`badge ${s.priority === 'IMMEDIATE' ? 'badge-critical' : s.priority === 'HIGH' ? 'badge-high' : 'badge-moderate'}`}>
-                        {s.priority}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-responsive">
+              <table className="data-table table-grid-schedule">
+                <thead>
+                  <tr><th>Zone</th><th>Window</th><th>Priority</th></tr>
+                </thead>
+                <tbody>
+                  {schedule.map((s, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 600 }}>
+                        {s.top_junction}
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.deploy_window}</td>
+                      <td>
+                        <span className={`badge ${s.priority === 'IMMEDIATE' ? 'badge-critical' : s.priority === 'HIGH' ? 'badge-high' : 'badge-moderate'}`}>
+                          {s.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>No schedule data</p>
           )}

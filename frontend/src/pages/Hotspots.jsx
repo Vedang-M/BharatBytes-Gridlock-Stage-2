@@ -70,24 +70,26 @@ export default function Hotspots() {
             </svg>
             Top Hotspots by CCS
           </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Junction</th><th>CCS</th><th>Category</th><th>Violations</th><th>Peak %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hotspots.slice(0, 30).map((h, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 600 }}>{(h.top_junction || '').slice(0, 28)}</td>
-                  <td style={{ fontWeight: 700, color: CCS_COLORS[h.CCS_category] }}>{h.CCS}</td>
-                  <td><span className={`badge badge-${(h.CCS_category || 'low').toLowerCase()}`}>{h.CCS_category}</span></td>
-                  <td style={{ fontWeight: 600 }}>{Number(h.violations).toLocaleString()}</td>
-                  <td>{h.peak_pct}%</td>
+          <div className="table-responsive">
+            <table className="data-table table-grid-hotspots">
+              <thead>
+                <tr>
+                  <th>Junction</th><th>CCS</th><th>Category</th><th>Violations</th><th>Peak %</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {hotspots.slice(0, 30).map((h, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 600 }}>{h.top_junction}</td>
+                    <td style={{ fontWeight: 700, color: CCS_COLORS[h.CCS_category] }}>{h.CCS}</td>
+                    <td><span className={`badge badge-${(h.CCS_category || 'low').toLowerCase()}`}>{h.CCS_category}</span></td>
+                    <td style={{ fontWeight: 600 }}>{Number(h.violations).toLocaleString()}</td>
+                    <td>{h.peak_pct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="flat-card" style={{ padding: 0, overflow: 'hidden' }}>

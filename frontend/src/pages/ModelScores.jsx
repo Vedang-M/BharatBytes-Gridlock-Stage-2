@@ -54,7 +54,7 @@ function FeatureImportanceBars({ features }) {
           <div className="fi-bar-track">
             <div
               className="fi-bar-fill"
-              style={{ width: `${(f.value / maxVal) * 100}%` }}
+              style={{ width: `${Math.max(0, (f.value / maxVal) * 100)}%` }}
             />
           </div>
           <div className="fi-bar-value">{(f.value * 100).toFixed(1)}%</div>
@@ -194,28 +194,30 @@ export default function ModelScores() {
             Per-Class Performance
           </div>
           {metrics.per_class_metrics ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th style={{ textAlign: 'center' }}>Precision</th>
-                  <th style={{ textAlign: 'center' }}>Recall</th>
-                  <th style={{ textAlign: 'center' }}>F1</th>
-                  <th style={{ textAlign: 'center' }}>Support</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(metrics.per_class_metrics).map(([cat, m]) => (
-                  <tr key={cat}>
-                    <td><span className={`badge badge-${cat.toLowerCase()}`}>{cat}</span></td>
-                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.precision * 100).toFixed(1)}%</td>
-                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.recall * 100).toFixed(1)}%</td>
-                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.f1 * 100).toFixed(1)}%</td>
-                    <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)' }}>{m.support}</td>
+            <div className="table-responsive">
+              <table className="data-table table-grid-perclass">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th style={{ textAlign: 'center' }}>Precision</th>
+                    <th style={{ textAlign: 'center' }}>Recall</th>
+                    <th style={{ textAlign: 'center' }}>F1</th>
+                    <th style={{ textAlign: 'center' }}>Support</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {Object.entries(metrics.per_class_metrics).map(([cat, m]) => (
+                    <tr key={cat}>
+                      <td><span className={`badge badge-${cat.toLowerCase()}`}>{cat}</span></td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.precision * 100).toFixed(1)}%</td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.recall * 100).toFixed(1)}%</td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.f1 * 100).toFixed(1)}%</td>
+                      <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)' }}>{m.support}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No data available</p>
           )}
@@ -228,14 +230,16 @@ export default function ModelScores() {
               </svg>
               Model Configuration
             </div>
-            <table className="data-table">
-              <tbody>
-                <tr><td>Algorithm</td><td style={{ fontWeight: 600 }}>{metrics.model_name}</td></tr>
-                <tr><td>Validation</td><td style={{ fontWeight: 600 }}>5-Fold Stratified CV</td></tr>
-                <tr><td>Features</td><td style={{ fontWeight: 600 }}>{metrics.n_features}</td></tr>
-                <tr><td>Categories</td><td style={{ fontWeight: 600 }}>{(metrics.categories || []).join(', ')}</td></tr>
-              </tbody>
-            </table>
+            <div className="table-responsive">
+              <table className="data-table table-grid-config">
+                <tbody>
+                  <tr><td>Algorithm</td><td style={{ fontWeight: 600 }}>{metrics.model_name}</td></tr>
+                  <tr><td>Validation</td><td style={{ fontWeight: 600 }}>5-Fold Stratified CV</td></tr>
+                  <tr><td>Features</td><td style={{ fontWeight: 600 }}>{metrics.n_features}</td></tr>
+                  <tr><td>Categories</td><td style={{ fontWeight: 600 }}>{(metrics.categories || []).join(', ')}</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
