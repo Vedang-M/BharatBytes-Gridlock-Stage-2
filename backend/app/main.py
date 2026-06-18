@@ -19,14 +19,14 @@ from app.services.analytics_service import AnalyticsService  # noqa: E402
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     """Load heavy resources once at startup."""
-    print("🚀 Starting ParkIQ Backend …")
+    print("Starting ParkIQ Backend ...")
     hs = HotspotService()
     application.state.hotspot_service = hs
     application.state.prediction_service = PredictionService()
     application.state.analytics_service = AnalyticsService(hs.df_clust)
-    print("✅ All services ready")
+    print("All services ready")
     yield
-    print("👋 Shutting down")
+    print("Shutting down")
 
 
 app = FastAPI(

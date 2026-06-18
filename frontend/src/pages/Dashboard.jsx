@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -7,6 +7,7 @@ import StatsCard from '../components/StatsCard';
 import MapView from '../components/MapView';
 import HotspotCard from '../components/HotspotCard';
 import { getSummary, getHotspots, getHeatmapData, getSchedule } from '../api/backendApi';
+import { generateDashboardPDF } from '../utils/pdfGenerator';
 
 const CCS_COLORS = { CRITICAL: '#ef4444', HIGH: '#f97316', MODERATE: '#eab308', LOW: '#22c55e' };
 
@@ -16,6 +17,25 @@ export default function Dashboard() {
   const [heatmap, setHeatmap] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const pieChartRef = useRef(null);
+  const radarChartRef = useRef(null);
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      await generateDashboardPDF({
+        summary,
+        hotspots,
+        schedule,
+        chartElements: [pieChartRef.current, radarChartRef.current]
+      });
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -59,9 +79,40 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Traffic Enforcement Dashboard</h1>
-        <p className="page-subtitle">Bengaluru Traffic Police · Jan–May 2025</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 className="page-title">Traffic Enforcement Dashboard</h1>
+          <p className="page-subtitle">Bengaluru Traffic Police · Jan–May 2025</p>
+        </div>
+        <button 
+          onClick={handleDownloadPDF} 
+          disabled={isGeneratingPDF}
+          style={{
+            padding: '12px 24px',
+            fontSize: '1rem',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '600',
+            cursor: isGeneratingPDF ? 'not-allowed' : 'pointer',
+            opacity: isGeneratingPDF ? 0.7 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            transition: 'background-color 0.2s',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          }}
+          onMouseOver={(e) => { if(!isGeneratingPDF) e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
+          onMouseOut={(e) => { if(!isGeneratingPDF) e.currentTarget.style.backgroundColor = '#2563eb'; }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          {isGeneratingPDF ? 'Generating PDF...' : 'Download Report'}
+        </button>
       </div>
 
       <div className="grid-5" style={{ marginBottom: 24 }}>
@@ -87,7 +138,7 @@ export default function Dashboard() {
       <div className="grid-3" style={{ marginBottom: 24 }}>
         <div className="flat-card">
           <div className="card-title">CCS Distribution</div>
-          <div className="chart-wrapper" style={{ height: 280 }}>
+          <div className="chart-wrapper" style={{ height: 280 }} ref={pieChartRef}>
             <ResponsiveContainer>
               <PieChart margin={{ left: 25, right: 25, top: 10, bottom: 10 }}>
                 <Pie
@@ -121,7 +172,7 @@ export default function Dashboard() {
                 <span className={`badge badge-${(top.CCS_category || 'low').toLowerCase()}`}>{top.CCS_category}</span>
                 <span style={{ marginLeft: 8, fontWeight: 600, color: CCS_COLORS[top.CCS_category] }}>{top.CCS}/10</span>
               </div>
-              <div className="chart-wrapper" style={{ height: 240 }}>
+              <div className="chart-wrapper" style={{ height: 240 }} ref={radarChartRef}>
                 <ResponsiveContainer>
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
                     <PolarGrid stroke="#262626" />
