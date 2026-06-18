@@ -2,7 +2,7 @@ import os
 import requests
 from fastapi import APIRouter, Request, UploadFile, File
 from pydantic import BaseModel
-import google.generativeai as genai
+import google.genai as genai
 
 router = APIRouter()
 
