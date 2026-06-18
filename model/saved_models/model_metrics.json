@@ -1,0 +1,98 @@
+{
+  "model_name": "GradientBoosting",
+  "accuracy": 0.9238,
+  "precision_weighted": 0.9212,
+  "recall_weighted": 0.9238,
+  "f1_weighted": 0.9222,
+  "cohen_kappa": 0.8527,
+  "cv_f1_score": 0.9706,
+  "confusion_matrix": [
+    [
+      44,
+      2,
+      0,
+      0
+    ],
+    [
+      4,
+      128,
+      5,
+      0
+    ],
+    [
+      0,
+      4,
+      22,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ]
+  ],
+  "categories": [
+    "LOW",
+    "MODERATE",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "per_class_metrics": {
+    "LOW": {
+      "precision": 0.9167,
+      "recall": 0.9565,
+      "f1": 0.9362,
+      "support": 46
+    },
+    "MODERATE": {
+      "precision": 0.9552,
+      "recall": 0.9343,
+      "f1": 0.9446,
+      "support": 137
+    },
+    "HIGH": {
+      "precision": 0.7857,
+      "recall": 0.8462,
+      "f1": 0.8148,
+      "support": 26
+    },
+    "CRITICAL": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1
+    }
+  },
+  "feature_importance": {
+    "violation_count": 0.2854,
+    "peak_pct": 0.2321,
+    "avg_severity": 0.16,
+    "max_severity": 0.0028,
+    "avg_veh_weight": 0.0779,
+    "main_road_pct": 0.0901,
+    "junction_pct": 0.1073,
+    "weekend_pct": 0.0078,
+    "unique_hours": 0.0066,
+    "n_violations_avg": 0.0116,
+    "unique_vehicle_types": 0.0073,
+    "temporal_entropy": 0.011
+  },
+  "train_size": 2200,
+  "test_size": 210,
+  "n_features": 12,
+  "feature_names": [
+    "violation_count",
+    "peak_pct",
+    "avg_severity",
+    "max_severity",
+    "avg_veh_weight",
+    "main_road_pct",
+    "junction_pct",
+    "weekend_pct",
+    "unique_hours",
+    "n_violations_avg",
+    "unique_vehicle_types",
+    "temporal_entropy"
+  ]
+}
