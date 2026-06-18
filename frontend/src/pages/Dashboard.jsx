@@ -79,7 +79,7 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Traffic Enforcement Dashboard</h1>
           <p className="page-subtitle">Bengaluru Traffic Police · Jan–May 2025</p>
@@ -87,26 +87,10 @@ export default function Dashboard() {
         <button 
           onClick={handleDownloadPDF} 
           disabled={isGeneratingPDF}
-          style={{
-            padding: '12px 24px',
-            fontSize: '1rem',
-            backgroundColor: '#2563eb',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: isGeneratingPDF ? 'not-allowed' : 'pointer',
-            opacity: isGeneratingPDF ? 0.7 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            transition: 'background-color 0.2s',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-          }}
-          onMouseOver={(e) => { if(!isGeneratingPDF) e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
-          onMouseOut={(e) => { if(!isGeneratingPDF) e.currentTarget.style.backgroundColor = '#2563eb'; }}
+          className="btn btn-primary"
+          style={{ height: 'fit-content' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -127,8 +111,13 @@ export default function Dashboard() {
         <div className="flat-card" style={{ padding: 0, overflow: 'hidden' }}>
           <MapView hotspots={hotspots} heatmapPoints={heatmap} topN={20} />
         </div>
-        <div className="flat-card" style={{ maxHeight: 560, overflowY: 'auto' }}>
-          <div className="card-title">Top 10 Critical Zones</div>
+        <div className="flat-card" style={{ maxHeight: 520, overflowY: 'auto' }}>
+          <div className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Top 10 Critical Zones
+          </div>
           {hotspots.slice(0, 10).map((h, i) => (
             <HotspotCard key={i} hotspot={h} rank={i + 1} />
           ))}
@@ -137,48 +126,61 @@ export default function Dashboard() {
 
       <div className="grid-3" style={{ marginBottom: 24 }}>
         <div className="flat-card">
-          <div className="card-title">CCS Distribution</div>
+          <div className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+            </svg>
+            CCS Distribution
+          </div>
           <div className="chart-wrapper" style={{ height: 280 }} ref={pieChartRef}>
             <ResponsiveContainer>
-              <PieChart margin={{ left: 25, right: 25, top: 10, bottom: 10 }}>
+              <PieChart margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                 <Pie
                   data={ccsChartData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={70}
-                  paddingAngle={2}
+                  innerRadius={50}
+                  outerRadius={75}
+                  paddingAngle={3}
                   label={({ name, value }) => `${name}: ${value}`}
-                  labelLine={{ stroke: '#737373' }}
+                  labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
                 >
                   {ccsChartData.map((entry) => (
                     <Cell key={entry.name} fill={CCS_COLORS[entry.name] || '#737373'} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ background: '#171717', border: '1px solid #262626', borderRadius: 4 }} />
+                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontFamily: 'var(--font-family)', fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="flat-card">
-          <div className="card-title">#1 Hotspot Profile</div>
+          <div className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              <path d="M2 12h20"></path>
+            </svg>
+            #1 Hotspot Profile
+          </div>
           {top && (
             <>
               <div style={{ textAlign: 'center', marginBottom: 8 }}>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{top.top_junction}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 6, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>{top.top_junction}</div>
                 <span className={`badge badge-${(top.CCS_category || 'low').toLowerCase()}`}>{top.CCS_category}</span>
-                <span style={{ marginLeft: 8, fontWeight: 600, color: CCS_COLORS[top.CCS_category] }}>{top.CCS}/10</span>
+                <span style={{ marginLeft: 8, fontWeight: 700, color: CCS_COLORS[top.CCS_category] }}>{top.CCS}/10 CCS</span>
               </div>
               <div className="chart-wrapper" style={{ height: 240 }} ref={radarChartRef}>
                 <ResponsiveContainer>
                   <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
-                    <PolarGrid stroke="#262626" />
-                    <PolarAngleAxis dataKey="metric" tick={{ fill: '#a3a3a3', fontSize: 11 }} />
+                    <PolarGrid stroke="var(--border)" />
+                    <PolarAngleAxis dataKey="metric" tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }} />
                     <PolarRadiusAxis tick={false} axisLine={false} />
-                    <Radar dataKey="value" stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} strokeWidth={2} />
+                    <Radar dataKey="value" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2.5} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -187,7 +189,15 @@ export default function Dashboard() {
         </div>
 
         <div className="flat-card">
-          <div className="card-title">Deployment Schedule</div>
+          <div className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Deployment Schedule
+          </div>
           {schedule.length > 0 ? (
             <table className="data-table">
               <thead>
@@ -199,7 +209,7 @@ export default function Dashboard() {
                     <td style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {(s.top_junction || '').slice(0, 22)}
                     </td>
-                    <td>{s.deploy_window}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.deploy_window}</td>
                     <td>
                       <span className={`badge ${s.priority === 'IMMEDIATE' ? 'badge-critical' : s.priority === 'HIGH' ? 'badge-high' : 'badge-moderate'}`}>
                         {s.priority}

@@ -248,11 +248,11 @@ export default function AssistantWidget() {
         style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           width: 56, height: 56, borderRadius: '50%',
-          background: audioPlaying ? '#16a34a' : '#2563eb',
+          background: audioPlaying ? '#16a34a' : 'var(--accent)',
           color: '#fff', border: 'none',
           boxShadow: audioPlaying
             ? '0 4px 18px rgba(22,163,74,0.6)'
-            : '0 4px 18px rgba(37,99,235,0.5)',
+            : '0 4px 18px rgba(15, 118, 110, 0.4)',
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '1.5rem',
@@ -271,45 +271,48 @@ export default function AssistantWidget() {
           position: 'fixed', bottom: 90, right: 24, zIndex: 9998,
           width: 365, height: 545,
           display: 'flex', flexDirection: 'column',
-          background: '#000000',
-          border: '1px solid #d6d4a8',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.75), 0 0 0 1px rgba(214,212,168,0.1)',
+          background: 'var(--bg-card)',
+          backdropFilter: 'var(--glass-blur-heavy)',
+          WebkitBackdropFilter: 'var(--glass-blur-heavy)',
+          border: '1px solid var(--border)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-diffuse)',
           overflow: 'hidden',
-          fontFamily: "'Inter', -apple-system, sans-serif",
+          fontFamily: "var(--font-family)",
+          transition: 'all 0.3s ease',
         }}>
           {/* Header */}
           <div style={{
-            padding: '12px 16px',
-            background: '#0a0a0a',
-            borderBottom: '1px solid #d6d4a8',
+            padding: '14px 16px',
+            background: 'var(--bg-surface)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: '50%',
-                background: '#2563eb',
+                background: 'var(--accent)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1rem', flexShrink: 0,
+                fontSize: '1rem', flexShrink: 0, color: '#fff',
               }}>🤖</div>
               <div>
-                <div style={{ color: '#fafafa', fontWeight: 700, fontSize: '0.88rem' }}>ParkIQ Copilot</div>
-                <div style={{ color: '#F7F6C5', fontSize: '0.67rem', opacity: 0.75 }}>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'var(--font-display)' }}>ParkIQ Copilot</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.67rem', fontWeight: 600 }}>
                   Powered by Sarvam AI
                 </div>
               </div>
             </div>
             {/* Language badge — auto-detected */}
             <div style={{
-              background: '#111',
-              border: '1px solid #d6d4a8',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border)',
               borderRadius: '20px',
               padding: '4px 10px',
               fontSize: '0.68rem',
-              color: '#F7F6C5',
+              color: 'var(--text-primary)',
               display: 'flex', alignItems: 'center', gap: 5,
-              transition: 'all 0.3s',
+              fontWeight: 700,
             }}>
               <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>AUTO</span>
               {LANG_LABELS[detectedLang] || '🇮🇳 English'}
@@ -320,7 +323,7 @@ export default function AssistantWidget() {
           <div style={{
             flex: 1, overflowY: 'auto', padding: '14px 12px',
             display: 'flex', flexDirection: 'column', gap: '10px',
-            background: '#000',
+            background: 'transparent',
           }}>
             {messages.map((msg, idx) => (
               <div key={idx} style={{
@@ -328,28 +331,30 @@ export default function AssistantWidget() {
                 maxWidth: '88%',
               }}>
                 <div style={{
-                  background: msg.role === 'user' ? '#2563eb' : '#111',
-                  color: '#fafafa',
-                  padding: '9px 13px',
+                  background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg-surface)',
+                  color: msg.role === 'user' ? '#ffffff' : 'var(--text-primary)',
+                  padding: '10px 14px',
                   borderRadius: msg.role === 'user'
-                    ? '12px 12px 2px 12px'
-                    : '12px 12px 12px 2px',
+                    ? '16px 16px 2px 16px'
+                    : '16px 16px 16px 2px',
                   fontSize: '0.83rem',
                   lineHeight: '1.55',
-                  border: msg.role === 'user' ? 'none' : '1px solid #222',
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
                   wordBreak: 'break-word',
+                  fontWeight: 500,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                 }}>
                   {msg.text}
                 </div>
                 {/* Footer: language tag + replay button */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
                   justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
                   paddingLeft: msg.role === 'user' ? 0 : 4,
                   paddingRight: msg.role === 'user' ? 4 : 0,
                 }}>
                   {msg.lang && msg.lang !== 'en-IN' && (
-                    <span style={{ fontSize: '0.6rem', color: '#555' }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                       {LANG_LABELS[msg.lang]}
                     </span>
                   )}
@@ -361,7 +366,7 @@ export default function AssistantWidget() {
                       title="Replay audio"
                       style={{
                         background: 'none', border: 'none',
-                        color: audioPlaying ? '#555' : '#F7F6C5',
+                        color: audioPlaying ? 'var(--text-muted)' : 'var(--accent)',
                         cursor: audioPlaying ? 'not-allowed' : 'pointer',
                         fontSize: '0.78rem', padding: '2px 4px',
                         borderRadius: '6px',
@@ -381,14 +386,14 @@ export default function AssistantWidget() {
             {loading && (
               <div style={{
                 alignSelf: 'flex-start',
-                background: '#111', border: '1px solid #222',
-                padding: '10px 14px', borderRadius: '12px 12px 12px 2px',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                padding: '12px 16px', borderRadius: '16px 16px 16px 2px',
                 display: 'flex', gap: 5, alignItems: 'center',
               }}>
                 {[0, 0.2, 0.4].map((delay, i) => (
                   <span key={i} style={{
                     width: 7, height: 7, borderRadius: '50%',
-                    background: '#d6d4a8', display: 'inline-block',
+                    background: 'var(--text-muted)', display: 'inline-block',
                     animation: `dotBounce 1s ${delay}s infinite`,
                   }} />
                 ))}
@@ -400,31 +405,32 @@ export default function AssistantWidget() {
           {/* Mic status bar */}
           {micStatus && (
             <div style={{
-              padding: '5px 14px',
+              padding: '6px 14px',
               background: micStatus === 'recording'
-                ? 'rgba(239,68,68,0.12)'
-                : 'rgba(37,99,235,0.12)',
-              color: micStatus === 'recording' ? '#f87171' : '#93c5fd',
+                ? 'var(--status-critical-glow)'
+                : 'var(--accent-glow)',
+              color: micStatus === 'recording' ? 'var(--status-critical)' : 'var(--accent)',
               fontSize: '0.72rem',
               textAlign: 'center',
-              borderTop: `1px solid ${micStatus === 'recording' ? 'rgba(239,68,68,0.2)' : 'rgba(37,99,235,0.2)'}`,
+              borderTop: '1px solid var(--border)',
               flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              fontWeight: 600,
             }}>
               {micStatus === 'recording' ? (
                 <><span style={{ animation: 'micPulse 1s infinite', display: 'inline-block' }}>🔴</span> Recording — tap mic to stop</>
               ) : (
-                <><span>⏳</span> Sarvam is transcribing your voice...</>
+                <><span>⏳</span> Copilot is transcribing your voice...</>
               )}
             </div>
           )}
 
           {/* Input bar */}
           <form onSubmit={handleSubmit} style={{
-            padding: '10px 12px',
-            borderTop: '1px solid #d6d4a8',
+            padding: '12px',
+            borderTop: '1px solid var(--border)',
             display: 'flex', gap: '8px', alignItems: 'center',
-            background: '#0a0a0a',
+            background: 'var(--bg-surface)',
             flexShrink: 0,
           }}>
             {/* Mic button */}
@@ -437,16 +443,16 @@ export default function AssistantWidget() {
               style={{
                 width: 36, height: 36, borderRadius: '50%',
                 border: isRecording
-                  ? '2px solid #ef4444'
+                  ? '2px solid var(--status-critical)'
                   : isProcessing
-                    ? '2px solid #2563eb'
-                    : '1px solid #d6d4a8',
+                    ? '2px solid var(--accent)'
+                    : '1px solid var(--border)',
                 background: isRecording
-                  ? 'rgba(239,68,68,0.15)'
+                  ? 'var(--status-critical-glow)'
                   : isProcessing
-                    ? 'rgba(37,99,235,0.15)'
-                    : '#111',
-                color: isRecording ? '#ef4444' : isProcessing ? '#93c5fd' : '#d6d4a8',
+                    ? 'var(--accent-glow)'
+                    : 'var(--bg-hover)',
+                color: isRecording ? 'var(--status-critical)' : isProcessing ? 'var(--accent)' : 'var(--text-primary)',
                 cursor: (isProcessing || loading) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.95rem', flexShrink: 0,
@@ -465,9 +471,9 @@ export default function AssistantWidget() {
               title={isMuted ? 'Unmute voice responses' : 'Mute voice responses'}
               style={{
                 width: 36, height: 36, borderRadius: '50%',
-                border: `1px solid ${isMuted ? '#ef4444' : '#d6d4a8'}`,
-                background: isMuted ? 'rgba(239,68,68,0.1)' : audioPlaying ? 'rgba(22,163,74,0.15)' : '#111',
-                color: isMuted ? '#ef4444' : audioPlaying ? '#4ade80' : '#d6d4a8',
+                border: `1px solid ${isMuted ? 'var(--status-critical)' : 'var(--border)'}`,
+                background: isMuted ? 'var(--status-critical-glow)' : audioPlaying ? 'var(--status-low-glow)' : 'var(--bg-hover)',
+                color: isMuted ? 'var(--status-critical)' : audioPlaying ? 'var(--status-low)' : 'var(--text-primary)',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.95rem', flexShrink: 0,
@@ -488,17 +494,17 @@ export default function AssistantWidget() {
               disabled={micBusy}
               style={{
                 flex: 1,
-                padding: '7px 12px',
+                padding: '8px 14px',
                 borderRadius: '20px',
-                border: '1px solid #d6d4a8',
-                background: '#111',
-                color: '#fafafa',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-hover)',
+                color: 'var(--text-primary)',
                 outline: 'none',
                 fontSize: '0.83rem',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={(e) => { e.target.style.borderColor = '#2563eb'; }}
-              onBlur={(e) => { e.target.style.borderColor = '#d6d4a8'; }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }}
             />
 
             {/* Send button */}
@@ -508,9 +514,9 @@ export default function AssistantWidget() {
               disabled={loading || !query.trim() || micBusy}
               style={{
                 width: 36, height: 36, borderRadius: '50%',
-                background: (loading || !query.trim() || micBusy) ? '#111' : '#2563eb',
-                color: (loading || !query.trim() || micBusy) ? '#555' : '#fff',
-                border: `1px solid ${(loading || !query.trim() || micBusy) ? '#333' : '#2563eb'}`,
+                background: (loading || !query.trim() || micBusy) ? 'var(--bg-hover)' : 'var(--accent)',
+                color: (loading || !query.trim() || micBusy) ? 'var(--text-muted)' : '#fff',
+                border: 'none',
                 cursor: (loading || !query.trim() || micBusy) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.95rem', flexShrink: 0,
