@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from 'recharts';
 import StatsCard from '../components/StatsCard';
@@ -236,7 +236,7 @@ export default function Dashboard() {
                     <Cell key={entry.name} fill={CCS_COLORS[entry.name] || '#737373'} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontFamily: 'var(--font-family)', fontSize: 12 }} />
+                <RechartsTooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontFamily: 'var(--font-family)', fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
