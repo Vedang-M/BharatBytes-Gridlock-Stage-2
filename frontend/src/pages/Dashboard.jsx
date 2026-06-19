@@ -84,8 +84,8 @@ export default function Dashboard() {
           <h1 className="page-title">Traffic Enforcement Dashboard</h1>
           <p className="page-subtitle">Bengaluru Traffic Police · Jan–May 2025</p>
         </div>
-        <button 
-          onClick={handleDownloadPDF} 
+        <button
+          onClick={handleDownloadPDF}
           disabled={isGeneratingPDF}
           className="btn btn-primary"
           style={{ height: 'fit-content' }}
@@ -133,17 +133,17 @@ export default function Dashboard() {
             </svg>
             CCS Distribution
           </div>
-          <div className="chart-wrapper" style={{ height: 280 }} ref={pieChartRef}>
-            <ResponsiveContainer>
-              <PieChart margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+          <div className="chart-wrapper" style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }} ref={pieChartRef}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart margin={{ left: 50, right: 50, top: 20, bottom: 20 }}>
                 <Pie
                   data={ccsChartData}
                   dataKey="value"
                   nameKey="name"
-                  cx="50%"
+                  cx="44%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
+                  innerRadius="50%"
+                  outerRadius="65%"
                   paddingAngle={3}
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
@@ -174,9 +174,9 @@ export default function Dashboard() {
                 <span className={`badge badge-${(top.CCS_category || 'low').toLowerCase()}`}>{top.CCS_category}</span>
                 <span style={{ marginLeft: 8, fontWeight: 700, color: CCS_COLORS[top.CCS_category] }}>{top.CCS}/10 CCS</span>
               </div>
-              <div className="chart-wrapper" style={{ height: 240 }} ref={radarChartRef}>
-                <ResponsiveContainer>
-                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+              <div className="chart-wrapper" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} ref={radarChartRef}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
                     <PolarGrid stroke="var(--border)" />
                     <PolarAngleAxis dataKey="metric" tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }} />
                     <PolarRadiusAxis tick={false} axisLine={false} />

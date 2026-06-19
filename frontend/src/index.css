@@ -564,7 +564,7 @@ h6 {
 }
 
 .data-table .badge {
-  width: 100px;
+  min-width: 100px;
   justify-content: center;
 }
 
@@ -575,6 +575,7 @@ h6 {
   border-radius: 50%;
   background-color: currentColor;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .badge-critical {
