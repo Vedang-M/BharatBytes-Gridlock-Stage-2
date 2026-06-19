@@ -272,8 +272,8 @@ class HotspotService:
         return {
             "total_violations": int(len(self.df)),
             "total_clusters": int(len(c)),
-            "critical_zones": int((c["CCS"] >= 4.5).sum()),
-            "high_zones": int(((c["CCS"] >= 3.0) & (c["CCS"] < 4.5)).sum()),
+            "critical_zones": int((c["CCS_category"] == "CRITICAL").sum()),
+            "high_zones": int((c["CCS_category"] == "HIGH").sum()),
             "peak_pct": round(float(self.df["is_peak"].mean() * 100), 1),
             "top10_roi": int(c.head(10)["total_roi_inr"].sum()),
         }

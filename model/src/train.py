@@ -10,7 +10,13 @@ import numpy as np
 import pandas as pd
 import joblib
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
+from catboost import CatBoostClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import StackingClassifier
+from sklearn.linear_model import LogisticRegression
+# pyrefly: ignore [missing-import]
+import optuna
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     classification_report, confusion_matrix, cohen_kappa_score,
@@ -34,8 +40,9 @@ FEATURE_COLS = [
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
-    "lat_center",
-    "lon_center"
+    "peak_pct",
+    "main_road_pct",
+    "junction_pct"
 ]
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
@@ -83,59 +90,67 @@ def train_models(df: pd.DataFrame):
     train_dist = dict(zip(*np.unique(le.inverse_transform(y_clf_train), return_counts=True)))
     print(f"  Train distribution: {train_dist}")
 
-    # Cross-validation
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    # Optuna & Stacking
+    print("\n🚀 Evaluating StackingClassifier with Optuna …")
     
-    print("\n🚀 Evaluating HistGradientBoostingClassifier …")
-    clf = HistGradientBoostingClassifier(random_state=42, class_weight='balanced')
-    clf_f1_scores = []
-    
-    for train_idx, val_idx in cv.split(X_train, y_clf_train):
-        X_tr, y_tr = X_train[train_idx], y_clf_train[train_idx]
-        X_val, y_val = X_train[val_idx], y_clf_train[val_idx]
-        clf.fit(X_tr, y_tr)
-        preds = clf.predict(X_val)
-        clf_f1_scores.append(f1_score(y_val, preds, average="weighted"))
+    def objective(trial):
+        cb_lr = trial.suggest_float('cb_lr', 0.01, 0.1)
+        cb_depth = trial.suggest_int('cb_depth', 4, 6)
+        cb_l2 = trial.suggest_int('cb_l2', 3, 10)
         
-    clf_mean_f1 = np.mean(clf_f1_scores)
-    clf_std_f1 = np.std(clf_f1_scores)
-    print(f"  Classifier CV F1: {clf_mean_f1:.4f} ± {clf_std_f1:.4f}")
-
-    print("\n📈 Evaluating HistGradientBoostingRegressor …")
-    reg = HistGradientBoostingRegressor(random_state=42)
-    reg_f1_scores = []
-    
-    for train_idx, val_idx in cv.split(X_train, y_clf_train):
-        X_tr, y_tr_reg = X_train[train_idx], y_reg_train[train_idx]
-        X_val, y_val_clf = X_train[val_idx], y_clf_train[val_idx]
-        reg.fit(X_tr, y_tr_reg)
-        reg_preds = reg.predict(X_val)
-        # categorize
-        cat_preds = categorize_scores(reg_preds)
-        # encode
-        cat_preds_filled = cat_preds.fillna("LOW") # just a fallback
-        enc_preds = le.transform(cat_preds_filled)
-        reg_f1_scores.append(f1_score(y_val_clf, enc_preds, average="weighted"))
+        xgb_lr = trial.suggest_float('xgb_lr', 0.01, 0.1)
+        xgb_depth = trial.suggest_int('xgb_depth', 3, 6)
+        xgb_lambda = trial.suggest_float('xgb_lambda', 1.0, 10.0)
         
-    reg_mean_f1 = np.mean(reg_f1_scores)
-    reg_std_f1 = np.std(reg_f1_scores)
-    print(f"  Regressor CV F1: {reg_mean_f1:.4f} ± {reg_std_f1:.4f}")
+        lgb_lr = trial.suggest_float('lgb_lr', 0.01, 0.1)
+        lgb_leaves = trial.suggest_int('lgb_leaves', 15, 31)
+        lgb_l2 = trial.suggest_float('lgb_l2', 1.0, 10.0)
+        
+        cb = CatBoostClassifier(learning_rate=cb_lr, depth=cb_depth, l2_leaf_reg=cb_l2, random_state=42, verbose=0)
+        xgb = XGBClassifier(learning_rate=xgb_lr, max_depth=xgb_depth, reg_lambda=xgb_lambda, random_state=42, eval_metric='mlogloss')
+        lgb = LGBMClassifier(learning_rate=lgb_lr, num_leaves=lgb_leaves, reg_lambda=lgb_l2, random_state=42, verbosity=-1)
+        
+        stack = StackingClassifier(
+            estimators=[('cb', cb), ('xgb', xgb), ('lgb', lgb)],
+            final_estimator=LogisticRegression(random_state=42, max_iter=1000),
+            cv=3
+        )
+        
+        # 3-fold CV score for this trial
+        cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+        f1_scores = []
+        for tr_idx, val_idx in cv_inner.split(X_train, y_clf_train):
+            X_tr, y_tr = X_train[tr_idx], y_clf_train[tr_idx]
+            X_val, y_val = X_train[val_idx], y_clf_train[val_idx]
+            stack.fit(X_tr, y_tr)
+            preds = stack.predict(X_val)
+            f1_scores.append(f1_score(y_val, preds, average='weighted'))
+        return np.mean(f1_scores)
 
-    # Pick winner
-    if reg_mean_f1 > clf_mean_f1:
-        print("\n✅ Winner: HistGradientBoostingRegressor")
-        best_name = "HistGradientBoostingRegressor"
-        best_model = reg
-        best_model.fit(X_train, y_reg_train)
-        y_pred_raw = best_model.predict(X_test)
-        y_pred_cat = categorize_scores(y_pred_raw).fillna("LOW")
-        y_pred = le.transform(y_pred_cat)
-    else:
-        print("\n✅ Winner: HistGradientBoostingClassifier")
-        best_name = "HistGradientBoostingClassifier"
-        best_model = clf
-        best_model.fit(X_train, y_clf_train)
-        y_pred = best_model.predict(X_test)
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction='maximize')
+    print("   Running 20 trials...")
+    study.optimize(objective, n_trials=20)
+    
+    print(f"  Best params: {study.best_params}")
+    print(f"  Best CV F1: {study.best_value:.4f}")
+    
+    # Train final stacking model
+    bp = study.best_params
+    cb = CatBoostClassifier(learning_rate=bp['cb_lr'], depth=bp['cb_depth'], l2_leaf_reg=bp['cb_l2'], random_state=42, verbose=0)
+    xgb = XGBClassifier(learning_rate=bp['xgb_lr'], max_depth=bp['xgb_depth'], reg_lambda=bp['xgb_lambda'], random_state=42, eval_metric='mlogloss')
+    lgb = LGBMClassifier(learning_rate=bp['lgb_lr'], num_leaves=bp['lgb_leaves'], reg_lambda=bp['lgb_l2'], random_state=42, verbosity=-1)
+    
+    best_model = StackingClassifier(
+        estimators=[('cb', cb), ('xgb', xgb), ('lgb', lgb)],
+        final_estimator=LogisticRegression(random_state=42, max_iter=1000),
+        cv=5
+    )
+    best_model.fit(X_train, y_clf_train)
+    
+    print("\n✅ Winner: StackingClassifier")
+    best_name = "StackingClassifier"
+    y_pred = best_model.predict(X_test).flatten()
         
     y_pred_labels = le.inverse_transform(y_pred)
     y_test_labels = le.inverse_transform(y_clf_test)
@@ -164,9 +179,10 @@ def train_models(df: pd.DataFrame):
                 "support":   int(report[cat]["support"]),
             }
 
+    # Feature importance via permutation
     from sklearn.inspection import permutation_importance
     perm_result = permutation_importance(
-        best_model, X_test, (y_clf_test if best_name == "HistGradientBoostingClassifier" else y_reg_test),
+        best_model, X_test, y_clf_test,
         n_repeats=10, random_state=42
     )
     importance = dict(zip(FEATURE_COLS, perm_result.importances_mean.round(4).tolist()))
@@ -181,8 +197,8 @@ def train_models(df: pd.DataFrame):
         "balanced_accuracy": round(bal_acc, 4),
         "mcc":               round(mcc, 4),
         "cohen_kappa":       round(kappa, 4),
-        "cv_f1_mean":        round(clf_mean_f1 if best_name == "HistGradientBoostingClassifier" else reg_mean_f1, 4),
-        "cv_f1_std":         round(clf_std_f1 if best_name == "HistGradientBoostingClassifier" else reg_std_f1, 4),
+        "cv_f1_mean":        round(study.best_value, 4),
+        "cv_f1_std":         0.0,
         "confusion_matrix":  cm,
         "categories":        CATEGORIES,
         "per_class_metrics": per_class,

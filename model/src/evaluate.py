@@ -28,8 +28,9 @@ FEATURE_COLS = [
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
-    "lat_center",
-    "lon_center"
+    "zone_cluster_id",
+    "traffic_density_index",
+    "peak_severity_risk"
 ]
 
 

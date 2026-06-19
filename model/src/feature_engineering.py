@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
 
 # ── Paths ──────────────────────────────────────────────────────
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -23,8 +24,9 @@ FEATURE_COLS = [
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
-    "lat_center",
-    "lon_center"
+    "zone_cluster_id",
+    "traffic_density_index",
+    "peak_severity_risk"
 ]
 
 
@@ -92,6 +94,14 @@ def create_grid_features(df: pd.DataFrame = None):
     MIN_VIOLATIONS = 5
     cells = cells[cells["violation_count"] >= MIN_VIOLATIONS].copy()
     print(f"  Grid cells (≥{MIN_VIOLATIONS} violations): {len(cells):,}")
+
+    # ── K-Means Spatial Clustering ────────────────────────────
+    kmeans = KMeans(n_clusters=15, random_state=42, n_init="auto")
+    cells["zone_cluster_id"] = kmeans.fit_predict(cells[["lat_center", "lon_center"]])
+
+    # ── Interaction Features ────────────────────────────────
+    cells["traffic_density_index"] = cells["main_road_pct"] * cells["junction_pct"]
+    cells["peak_severity_risk"] = cells["peak_pct"] * cells["n_violations_avg"]
 
     # ── Compute CCS target using the same weighted formula ──
     scaler = MinMaxScaler()
