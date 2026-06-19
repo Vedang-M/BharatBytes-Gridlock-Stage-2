@@ -42,3 +42,9 @@ frontend/.vite/
 
 # Logs
 *.log
+
+# ── CatBoost ───────────────────────────────
+catboost_info/
+
+# ── Backend cache ──────────────────────────
+backend/app/services/hotspot_cache.pkl

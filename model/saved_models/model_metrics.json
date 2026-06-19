@@ -1,35 +1,39 @@
 {
-  "model_name": "HistGradientBoosting",
-  "accuracy": 0.9238,
-  "precision_weighted": 0.9247,
-  "recall_weighted": 0.9238,
-  "f1_weighted": 0.9241,
-  "cohen_kappa": 0.8522,
-  "cv_f1_score": 0.9725,
+  "model_name": "StackingClassifier",
+  "accuracy": 0.7333,
+  "precision_weighted": 0.733,
+  "recall_weighted": 0.7333,
+  "f1_weighted": 0.7325,
+  "f1_macro": 0.7324,
+  "balanced_accuracy": 0.733,
+  "mcc": 0.6447,
+  "cohen_kappa": 0.6444,
+  "cv_f1_mean": 0.717,
+  "cv_f1_std": 0.0,
   "confusion_matrix": [
     [
-      43,
-      3,
+      44,
+      9,
       0,
       0
     ],
     [
-      4,
-      129,
-      4,
+      12,
+      31,
+      9,
       0
     ],
     [
       0,
-      3,
-      22,
-      1
+      8,
+      37,
+      8
     ],
     [
       0,
       0,
-      1,
-      0
+      10,
+      42
     ]
   ],
   "categories": [
@@ -40,59 +44,63 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.9149,
-      "recall": 0.9348,
-      "f1": 0.9247,
-      "support": 46
+      "precision": 0.7857,
+      "recall": 0.8302,
+      "f1": 0.8073,
+      "support": 53
     },
     "MODERATE": {
-      "precision": 0.9556,
-      "recall": 0.9416,
-      "f1": 0.9485,
-      "support": 137
+      "precision": 0.6458,
+      "recall": 0.5962,
+      "f1": 0.62,
+      "support": 52
     },
     "HIGH": {
-      "precision": 0.8148,
-      "recall": 0.8462,
-      "f1": 0.8302,
-      "support": 26
+      "precision": 0.6607,
+      "recall": 0.6981,
+      "f1": 0.6789,
+      "support": 53
     },
     "CRITICAL": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0,
-      "support": 1
+      "precision": 0.84,
+      "recall": 0.8077,
+      "f1": 0.8235,
+      "support": 52
     }
   },
   "feature_importance": {
-    "violation_count": 0.0114,
-    "peak_pct": 0.2095,
-    "avg_severity": 0.1591,
-    "max_severity": -0.0042,
-    "avg_veh_weight": 0.1016,
-    "main_road_pct": 0.08,
-    "junction_pct": 0.1406,
-    "weekend_pct": -0.0012,
-    "unique_hours": -0.0055,
-    "n_violations_avg": 0.0026,
-    "unique_vehicle_types": -0.0089,
-    "temporal_entropy": -0.0069
+    "weekend_pct": 0.0029,
+    "unique_hours": -0.0024,
+    "n_violations_avg": 0.0648,
+    "unique_vehicle_types": 0.011,
+    "temporal_entropy": 0.0133,
+    "peak_pct": 0.2557,
+    "main_road_pct": 0.1724,
+    "junction_pct": 0.2043
   },
-  "train_size": 2200,
+  "train_size": 840,
   "test_size": 210,
-  "n_features": 12,
+  "n_features": 8,
   "feature_names": [
-    "violation_count",
-    "peak_pct",
-    "avg_severity",
-    "max_severity",
-    "avg_veh_weight",
-    "main_road_pct",
-    "junction_pct",
     "weekend_pct",
     "unique_hours",
     "n_violations_avg",
     "unique_vehicle_types",
-    "temporal_entropy"
+    "temporal_entropy",
+    "peak_pct",
+    "main_road_pct",
+    "junction_pct"
+  ],
+  "ccs_thresholds": {
+    "LOW_MAX": 1.55,
+    "MODERATE_MAX": 2.02,
+    "HIGH_MAX": 2.6
+  },
+  "bins": [
+    0.4,
+    1.55,
+    2.02,
+    2.6,
+    5.67
   ]
 }

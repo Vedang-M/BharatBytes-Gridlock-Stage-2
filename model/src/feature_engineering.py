@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
 
 # ── Paths ──────────────────────────────────────────────────────
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -18,18 +19,14 @@ CELL_SIZE = 0.005  # ≈ 500 m at this latitude
 
 # ── Feature columns used by the ML model ───────────────────────
 FEATURE_COLS = [
-    "violation_count",
-    "peak_pct",
-    "avg_severity",
-    "max_severity",
-    "avg_veh_weight",
-    "main_road_pct",
-    "junction_pct",
     "weekend_pct",
     "unique_hours",
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
+    "zone_cluster_id",
+    "traffic_density_index",
+    "peak_severity_risk"
 ]
 
 
@@ -98,6 +95,14 @@ def create_grid_features(df: pd.DataFrame = None):
     cells = cells[cells["violation_count"] >= MIN_VIOLATIONS].copy()
     print(f"  Grid cells (≥{MIN_VIOLATIONS} violations): {len(cells):,}")
 
+    # ── K-Means Spatial Clustering ────────────────────────────
+    kmeans = KMeans(n_clusters=15, random_state=42, n_init="auto")
+    cells["zone_cluster_id"] = kmeans.fit_predict(cells[["lat_center", "lon_center"]])
+
+    # ── Interaction Features ────────────────────────────────
+    cells["traffic_density_index"] = cells["main_road_pct"] * cells["junction_pct"]
+    cells["peak_severity_risk"] = cells["peak_pct"] * cells["n_violations_avg"]
+
     # ── Compute CCS target using the same weighted formula ──
     scaler = MinMaxScaler()
     cells["dn"] = scaler.fit_transform(cells[["violation_count"]]).flatten()
@@ -116,16 +121,12 @@ def create_grid_features(df: pd.DataFrame = None):
         + 0.10 * cells["mn"]
     ).mul(10).round(2)
 
-    def _ccs_cat(s):
-        if s >= 4.5:
-            return "CRITICAL"
-        if s >= 3.0:
-            return "HIGH"
-        if s >= 1.5:
-            return "MODERATE"
-        return "LOW"
-
-    cells["CCS_category"] = cells["CCS"].apply(_ccs_cat)
+    cells["CCS_category"] = pd.qcut(
+        cells["CCS"],
+        q=4,
+        labels=["LOW", "MODERATE", "HIGH", "CRITICAL"],
+        duplicates="drop"
+    )
 
     print(f"  CCS distribution: {cells['CCS_category'].value_counts().to_dict()}")
     return cells, FEATURE_COLS

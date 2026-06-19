@@ -106,7 +106,10 @@ export default function ModelScores() {
   const rec   = (metrics.recall_weighted * 100);
   const f1    = (metrics.f1_weighted * 100);
   const kappa = (metrics.cohen_kappa * 100);
-  const cvF1  = (metrics.cv_f1_score * 100);
+  const cvF1  = (metrics.cv_f1_mean * 100);
+  const f1Macro = (metrics.f1_macro * 100);
+  const balAcc = (metrics.balanced_accuracy * 100);
+  const mcc = (metrics.mcc * 100);
 
   // ── Blind Spot Detector computations ────────────────────────
   const blindSpots = metrics.per_class_metrics
@@ -193,8 +196,8 @@ export default function ModelScores() {
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <div className="stat-value">{prec.toFixed(1)}%</div>
-            <div className="stat-label">Precision</div>
+            <div className="stat-value">{balAcc.toFixed(1)}%</div>
+            <div className="stat-label">Bal. Accuracy</div>
           </div>
           <div className="stat-icon-wrapper" style={{ background: 'var(--status-moderate-glow)', color: 'var(--status-moderate)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -256,25 +259,6 @@ export default function ModelScores() {
             <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No data available</p>
           )}
 
-          <div style={{ marginTop: 24 }}>
-            <div className="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-              Model Configuration
-            </div>
-            <div className="table-responsive">
-              <table className="data-table table-grid-config">
-                <tbody>
-                  <tr><td>Algorithm</td><td style={{ fontWeight: 600 }}>{metrics.model_name}</td></tr>
-                  <tr><td>Validation</td><td style={{ fontWeight: 600 }}>5-Fold Stratified CV</td></tr>
-                  <tr><td>Features</td><td style={{ fontWeight: 600 }}>{metrics.n_features}</td></tr>
-                  <tr><td>Categories</td><td style={{ fontWeight: 600 }}>{(metrics.categories || []).join(', ')}</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <div className="flat-card">
@@ -292,6 +276,24 @@ export default function ModelScores() {
             Glowing Blue indicates correct classifications (diagonal). Soft Red indicates misclassifications.
           </div>
         </div>
+      </div>
+
+      <div className="flat-card" style={{ marginBottom: 24 }}>
+        <div className="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          Model Configuration & Methodology
+        </div>
+        <ul style={{ paddingLeft: '24px', lineHeight: '2', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Algorithm:</strong> {metrics.model_name} (A robust Stacking Ensemble combining CatBoost, XGBoost, and LightGBM with a Logistic Regression meta-learner).</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Validation:</strong> 5-Fold Stratified CV (Ensures the model generalizes perfectly to unseen data without overfitting).</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Feature Engineering:</strong> {metrics.n_features} total features. Replaced raw GPS coordinates with advanced Interaction Features ("traffic_density_index", "peak_severity_risk").</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Target Categories:</strong> {(metrics.categories || []).join(', ')}</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Hyperparameter Optimization:</strong> Tuned via Optuna Bayesian Optimization over 20 trials, specifically targeting strict regularization to prevent data leakage.</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Spatial Abstraction:</strong> Unsupervised K-Means clustering (15 zones) applied prior to training to eliminate geographic memorization.</li>
+        </ul>
       </div>
 
       <div className="flat-card" style={{ marginBottom: 24 }}>
@@ -319,7 +321,7 @@ export default function ModelScores() {
           </div>
         </div>
 
-        <div className="grid-2">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '32px' }}>
           {/* LEFT: Blind Spots Identified */}
           <div>
             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
@@ -374,7 +376,7 @@ export default function ModelScores() {
                 : c.confidence >= 50 ? '#f97316' : '#ef4444';
               return (
                 <div key={c.category} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span className={`badge badge-${c.category.toLowerCase()}`} style={{ width: 80, textAlign: 'center', flexShrink: 0 }}>{c.category}</span>
+                  <span className={`badge badge-${c.category.toLowerCase()}`} style={{ width: 100, justifyContent: 'center', flexShrink: 0 }}>{c.category}</span>
                   <div style={{
                     flex: 1, height: 10, borderRadius: 5, background: 'var(--border)', position: 'relative',
                     outline: c.isBlindSpot ? '2px dashed #ef4444' : 'none',

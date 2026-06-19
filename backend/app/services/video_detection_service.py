@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from collections import deque, defaultdict
 from ultralytics import YOLO
+from app.utils.ccs_helper import get_ccs_category as _ccs_category, get_ccs_color as _ccs_color
 
 
 # YOLO class IDs for vehicles of interest
@@ -28,25 +29,7 @@ ALERT_TEXT = "ALERT: HIGH CONGESTION RISK - DEPLOY ENFORCEMENT NOW"
 ALERT_CCS_THRESHOLD = 3.5
 
 
-def _ccs_color(score: float):
-    """Return BGR color for the CCS severity level."""
-    if score >= 4.5:
-        return (68, 68, 239)    # CRITICAL - red
-    if score >= 3.0:
-        return (22, 115, 249)   # HIGH - orange
-    if score >= 1.5:
-        return (8, 179, 234)    # MODERATE - yellow
-    return (129, 185, 16)       # LOW - green
 
-
-def _ccs_category(score: float) -> str:
-    if score >= 4.5:
-        return "CRITICAL"
-    if score >= 3.0:
-        return "HIGH"
-    if score >= 1.5:
-        return "MODERATE"
-    return "LOW"
 
 
 class VideoDetectionService:

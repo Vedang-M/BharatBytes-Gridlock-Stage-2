@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import MinMaxScaler
 from dotenv import load_dotenv
+from app.utils.ccs_helper import get_ccs_category
 
 load_dotenv()
 
@@ -200,16 +201,7 @@ class HotspotService:
             + 0.10 * agg["mn"]
         ).mul(10).round(2)
 
-        def _cat(s):
-            if s >= 4.5:
-                return "CRITICAL"
-            if s >= 3.0:
-                return "HIGH"
-            if s >= 1.5:
-                return "MODERATE"
-            return "LOW"
-
-        agg["CCS_category"] = agg["CCS"].apply(_cat)
+        agg["CCS_category"] = agg["CCS"].apply(get_ccs_category)
 
         def _arch(row):
             jn = str(row["top_junction"]).upper()
@@ -280,8 +272,8 @@ class HotspotService:
         return {
             "total_violations": int(len(self.df)),
             "total_clusters": int(len(c)),
-            "critical_zones": int((c["CCS"] >= 4.5).sum()),
-            "high_zones": int(((c["CCS"] >= 3.0) & (c["CCS"] < 4.5)).sum()),
+            "critical_zones": int((c["CCS_category"] == "CRITICAL").sum()),
+            "high_zones": int((c["CCS_category"] == "HIGH").sum()),
             "peak_pct": round(float(self.df["is_peak"].mean() * 100), 1),
             "top10_roi": int(c.head(10)["total_roi_inr"].sum()),
         }
