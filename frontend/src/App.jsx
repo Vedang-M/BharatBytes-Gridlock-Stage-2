@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Hotspots from './pages/Hotspots';
 import Analytics from './pages/Analytics';
 import ModelScores from './pages/ModelScores';
+import LiveFeed from './pages/LiveFeed';
 import AssistantWidget from './components/AssistantWidget';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/hotspots" element={<Hotspots />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/model" element={<ModelScores />} />
+        <Route path="/live" element={<LiveFeed />} />
       </Routes>
       <AssistantWidget />
     </BrowserRouter>

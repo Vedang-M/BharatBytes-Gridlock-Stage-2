@@ -101,4 +101,7 @@ export const getAIInsights = async (payload) => {
   }
 };
 
+// ── Live Video Stream (WebSocket) ─────────────────────────────
+export const LIVE_STREAM_WS_URL = "ws://localhost:8000/ws/stream";
+
 export default api;

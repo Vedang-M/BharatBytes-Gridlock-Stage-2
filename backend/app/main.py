@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # FIXED: added `insights` to this import line.
-from app.routes import hotspots, predictions, analytics, assistant, insights  # noqa: E402
+from app.routes import hotspots, predictions, analytics, assistant, insights, stream  # noqa: E402
 from app.services.hotspot_service import HotspotService  # noqa: E402
 from app.services.prediction_service import PredictionService  # noqa: E402
 from app.services.analytics_service import AnalyticsService  # noqa: E402
@@ -32,7 +32,7 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(
     title="ParkIQ Backend API",
-    version="1.0.1",  # Triggering reload
+    version="1.0.2",
     description="Parking-Induced Congestion Intelligence – Bengaluru Traffic Police",
     lifespan=lifespan,
 )
@@ -54,6 +54,9 @@ app.include_router(assistant.router, prefix="/api/assistant", tags=["Assistant"]
 # /api/insights/generate returned 404 and the frontend silently fell
 # back to "AI commentary unavailable" text.
 app.include_router(insights.router, prefix="/api/insights", tags=["Insights"])
+
+# Stream WebSocket – no /api prefix, endpoint is /ws/stream
+app.include_router(stream.router, tags=["Stream"])
 
 
 @app.get("/")
