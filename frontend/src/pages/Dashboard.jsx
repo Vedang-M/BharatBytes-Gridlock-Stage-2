@@ -77,6 +77,25 @@ export default function Dashboard() {
     { metric: 'CCS', value: (top.CCS / 10) * 100 },
   ] : [];
 
+  // ── Enforcement Opportunity Cost computations ───────────────
+  const totalZones = hotspots.length;
+  const patrolledZones = schedule.length;
+  const unpatrolledZones = totalZones - patrolledZones;
+  const coverageGapPct = totalZones > 0
+    ? ((unpatrolledZones / totalZones) * 100).toFixed(1) : 0;
+  const avgViolationsPerZone = hotspots.length > 0
+    ? hotspots.reduce((s, h) => s + (h.violations || 0), 0) / hotspots.length
+    : 0;
+  const estimatedMissedViolations = Math.round(avgViolationsPerZone * unpatrolledZones);
+  const missedEconomicCost = Math.round(estimatedMissedViolations * 150 * 2.5 / 60);
+  const highPlusUnpatrolled = hotspots
+    .filter(h => ['HIGH', 'CRITICAL'].includes(h.CCS_category))
+    .filter(h => !schedule.some(s => s.top_junction === h.top_junction))
+    .length;
+  const coverageColor = coverageGapPct > 70 ? '#ef4444'
+    : coverageGapPct > 40 ? '#f97316' : '#22c55e';
+  const recoveryCost = Math.round(missedEconomicCost * 0.4);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -105,6 +124,71 @@ export default function Dashboard() {
         <StatsCard value={summary ? summary.critical_zones.toLocaleString() : '—'} label="Critical Zones" />
         <StatsCard value={summary ? `₹${summary.top10_roi.toLocaleString()}` : '—'} label="Daily ROI (Top 10)" />
         <StatsCard value={summary ? `${summary.peak_pct}%` : '—'} label="Peak-Hour Share" />
+      </div>
+
+      {/* ── Enforcement Opportunity Cost Card ─────────────────── */}
+      <div className="flat-card" style={{ marginBottom: 24, borderLeft: '3px solid #ef4444' }}>
+        <style>{`
+          @keyframes eocPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+          }
+        `}</style>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+          <div className="card-title" style={{ margin: 0 }}>
+            <span style={{
+              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+              background: '#ef4444', marginRight: 8, animation: 'eocPulse 1.2s infinite',
+            }} />
+            ENFORCEMENT OPPORTUNITY COST
+          </div>
+          <div style={{ fontSize: '0.78rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
+            Estimated economic loss from unpatrolled zones today
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 0 }}>
+          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444', lineHeight: 1.2 }}>
+              ₹{missedEconomicCost.toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Missed Daily Cost</div>
+          </div>
+          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              {unpatrolledZones}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Unpatrolled Zones</div>
+          </div>
+          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: coverageColor, lineHeight: 1.2 }}>
+              {coverageGapPct}%
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Coverage Gap</div>
+          </div>
+          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#f97316', lineHeight: 1.2 }}>
+              {highPlusUnpatrolled}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>HIGH+ Zones Exposed</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', width: '100%', overflow: 'hidden' }}>
+            <div style={{
+              width: `${coverageGapPct}%`, height: '100%', borderRadius: 4,
+              background: coverageColor, transition: 'width 0.6s ease',
+            }} />
+          </div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 6 }}>
+            {patrolledZones} of {totalZones} hotspot clusters covered today
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+          Deploying officers to {highPlusUnpatrolled} additional HIGH+ zones could recover ₹{recoveryCost.toLocaleString('en-IN')} in daily enforcement value
+        </div>
       </div>
 
       <div className="grid-3-1" style={{ marginBottom: 24 }}>

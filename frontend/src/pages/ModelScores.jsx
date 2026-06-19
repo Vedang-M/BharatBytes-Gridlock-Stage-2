@@ -108,6 +108,40 @@ export default function ModelScores() {
   const kappa = (metrics.cohen_kappa * 100);
   const cvF1  = (metrics.cv_f1_score * 100);
 
+  // ── Blind Spot Detector computations ────────────────────────
+  const blindSpots = metrics.per_class_metrics
+    ? Object.entries(metrics.per_class_metrics)
+        .filter(([, m]) => m.precision === 0 || m.recall === 0 || m.support < 5)
+        .map(([cat, m]) => ({
+          category: cat,
+          precision: m.precision,
+          recall: m.recall,
+          f1: m.f1,
+          support: m.support,
+          risk: (m.precision === 0 && m.recall === 0)
+            ? 'CANNOT DETECT'
+            : m.support < 5
+              ? 'INSUFFICIENT SAMPLES'
+              : 'LOW CONFIDENCE',
+        }))
+    : [];
+
+  const classConfidence = metrics.per_class_metrics
+    ? Object.entries(metrics.per_class_metrics).map(([cat, m]) => ({
+        category: cat,
+        confidence: Math.round(((m.precision + m.recall) / 2) * 100),
+        f1: Math.round(m.f1 * 100),
+        support: m.support,
+        isBlindSpot: blindSpots.some(b => b.category === cat),
+      }))
+    : [];
+
+  const primaryRisk = blindSpots.some(b => b.category === 'CRITICAL')
+    ? 'System cannot reliably identify CRITICAL zones. Operational deployment without human oversight is not recommended.'
+    : blindSpots.some(b => b.category === 'HIGH')
+      ? 'HIGH severity zones may be misclassified as MODERATE, leading to under-deployment of enforcement resources.'
+      : 'Blind spot classes may cause systematic enforcement gaps in affected zone categories.';
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -273,6 +307,145 @@ export default function ModelScores() {
           <p style={{ color: 'var(--text-muted)' }}>No data available — retrain the model to generate feature importance.</p>
         )}
       </div>
+
+      {/* ── Model Blind Spot Detector ──────────────────────────── */}
+      <div className="flat-card" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+          <div className="card-title" style={{ margin: 0 }}>
+            MODEL BLIND SPOT DETECTOR
+          </div>
+          <div style={{ fontSize: '0.78rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
+            Classes where the model cannot reliably predict
+          </div>
+        </div>
+
+        <div className="grid-2">
+          {/* LEFT: Blind Spots Identified */}
+          <div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+              Blind Spots Identified
+            </div>
+            {blindSpots.length === 0 ? (
+              <div style={{
+                background: 'rgba(34,197,94,0.08)', border: '1px solid #22c55e',
+                borderRadius: 8, padding: 16,
+              }}>
+                <span style={{ fontWeight: 600, color: '#22c55e' }}>No blind spots detected.</span>
+                <span style={{ color: 'var(--text-secondary)', marginLeft: 4, fontSize: '0.85rem' }}>
+                  All classes have sufficient training data and non-zero precision/recall.
+                </span>
+              </div>
+            ) : (
+              <div>
+                {blindSpots.map((b) => (
+                  <div key={b.category} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      <span className={`badge badge-${b.category.toLowerCase()}`}>{b.category}</span>
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 12,
+                        fontSize: '0.72rem', fontWeight: 700, marginLeft: 8, color: '#fff',
+                        background: b.risk === 'CANNOT DETECT' ? '#ef4444'
+                          : b.risk === 'INSUFFICIENT SAMPLES' ? '#f97316' : '#eab308',
+                      }}>
+                        {b.risk}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                      {b.risk === 'CANNOT DETECT'
+                        ? `Predicted 0 correct instances — P:${(b.precision * 100).toFixed(0)}% R:${(b.recall * 100).toFixed(0)}% Support:${b.support}`
+                        : b.risk === 'INSUFFICIENT SAMPLES'
+                          ? `Only ${b.support} training sample(s) — minimum 30 required for reliable detection`
+                          : `Below operational threshold — F1:${(b.f1 * 100).toFixed(0)}%`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: Detection Confidence by Class */}
+          <div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+              Detection Confidence by Class
+            </div>
+            {classConfidence.map((c) => {
+              const barColor = c.confidence >= 90 ? '#22c55e'
+                : c.confidence >= 70 ? '#eab308'
+                : c.confidence >= 50 ? '#f97316' : '#ef4444';
+              return (
+                <div key={c.category} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span className={`badge badge-${c.category.toLowerCase()}`} style={{ width: 80, textAlign: 'center', flexShrink: 0 }}>{c.category}</span>
+                  <div style={{
+                    flex: 1, height: 10, borderRadius: 5, background: 'var(--border)', position: 'relative',
+                    outline: c.isBlindSpot ? '2px dashed #ef4444' : 'none',
+                  }}>
+                    <div style={{
+                      width: `${c.confidence}%`, height: '100%', borderRadius: 5,
+                      background: barColor, transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, width: 36, textAlign: 'right', flexShrink: 0, color: 'var(--text-primary)' }}>
+                    {c.confidence}%
+                  </span>
+                  <span style={{ width: 40, fontSize: '0.75rem', flexShrink: 0, textAlign: 'right',
+                    color: c.support < 5 ? '#f97316' : '#22c55e',
+                  }}>
+                    {c.support < 5 ? `⚠${c.support}` : `↑${c.support}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Risk Assessment */}
+        {blindSpots.length > 0 && (
+          <div style={{
+            background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 8, padding: 16, marginTop: 16,
+          }}>
+            <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>
+              OPERATIONAL RISK ASSESSMENT
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: 12, margin: '0 0 12px 0' }}>
+              {primaryRisk}
+            </p>
+            <div style={{ fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: 12 }}>
+              Collect minimum 30 samples per class before full operational deployment.
+            </div>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th style={{ textAlign: 'center' }}>Current Samples</th>
+                    <th style={{ textAlign: 'center' }}>Required</th>
+                    <th style={{ textAlign: 'center' }}>Gap</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {blindSpots.map((b) => {
+                    const gap = Math.max(0, 30 - b.support);
+                    return (
+                      <tr key={b.category}>
+                        <td><span className={`badge badge-${b.category.toLowerCase()}`}>{b.category}</span></td>
+                        <td style={{ textAlign: 'center', fontWeight: 600, color: b.support < 5 ? '#ef4444' : 'var(--text-primary)' }}>
+                          {b.support}
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: 600 }}>30</td>
+                        <td style={{ textAlign: 'center', fontWeight: 600, color: gap > 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                          {gap}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
