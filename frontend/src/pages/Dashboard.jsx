@@ -125,68 +125,86 @@ export default function Dashboard() {
         <StatsCard value={summary ? `${summary.peak_pct}%` : '—'} label="Peak-Hour Share" />
       </div>
 
-      {/* ── Enforcement Opportunity Cost Card ─────────────────── */}
-      <div className="flat-card" style={{ marginBottom: 24, borderLeft: '3px solid #ef4444' }}>
+      {/* ── Premium Enforcement Opportunity Cost Card ─────────────────── */}
+      <div className="flat-card" style={{ 
+        marginBottom: 24, 
+        background: 'linear-gradient(145deg, rgba(239, 68, 68, 0.03) 0%, rgba(249, 115, 22, 0.03) 100%)',
+        border: '1px solid rgba(239, 68, 68, 0.15)',
+        boxShadow: '0 4px 24px -6px rgba(239, 68, 68, 0.12)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Subtle glowing orb in background */}
+        <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+
         <style>{`
           @keyframes eocPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.6); }
+          }
+          @keyframes shimmerBar {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
           }
         `}</style>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-          <div className="card-title" style={{ margin: 0 }}>
-            <span style={{
-              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-              background: '#ef4444', marginRight: 8, animation: 'eocPulse 1.2s infinite',
-            }} />
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+          <div className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12, fontSize: '1.05rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ position: 'absolute', width: 14, height: 14, borderRadius: '50%', background: '#ef4444', opacity: 0.3, animation: 'eocPulse 2s infinite ease-in-out' }} />
+               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', zIndex: 1, boxShadow: '0 0 8px #ef4444' }} />
+            </div>
             ENFORCEMENT OPPORTUNITY COST
           </div>
-          <div style={{ fontSize: '0.78rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-            Estimated economic loss from unpatrolled zones today
-          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 0 }}>
-          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444', lineHeight: 1.2 }}>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 24 }}>
+          <div style={{ flex: '1 1 180px', padding: '20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #ef4444, #f97316)' }} />
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, lineHeight: 1.1, background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>
               ₹{missedEconomicCost.toLocaleString('en-IN')}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Missed Daily Cost</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Missed Daily Cost</div>
           </div>
-          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          <div style={{ flex: '1 1 140px', padding: '20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 6 }}>
               {unpatrolledZones}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Unpatrolled Zones</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unpatrolled Zones</div>
           </div>
-          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: coverageColor, lineHeight: 1.2 }}>
+          <div style={{ flex: '1 1 140px', padding: '20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: coverageColor, lineHeight: 1.1, marginBottom: 6 }}>
               {coverageGapPct}%
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Coverage Gap</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Gap</div>
           </div>
-          <div style={{ flex: '1 1 140px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#f97316', lineHeight: 1.2 }}>
+          <div style={{ flex: '1 1 140px', padding: '20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f97316', lineHeight: 1.1, marginBottom: 6 }}>
               {highPlusUnpatrolled}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>HIGH+ Zones Exposed</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HIGH+ Exposed</div>
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', width: '100%', overflow: 'hidden' }}>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ height: 12, borderRadius: 12, background: 'var(--bg-hover)', width: '100%', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{
-              width: `${coverageGapPct}%`, height: '100%', borderRadius: 4,
-              background: coverageColor, transition: 'width 0.6s ease',
+              width: `${coverageGapPct}%`, height: '100%', borderRadius: 12,
+              background: `linear-gradient(90deg, #f97316 0%, #ef4444 50%, #f97316 100%)`,
+              backgroundSize: '200% 100%',
+              animation: 'shimmerBar 3s infinite linear',
+              transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)'
             }} />
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 6 }}>
-            {patrolledZones} of {totalZones} hotspot clusters covered today
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--text-primary)' }}>{patrolledZones}</span> of {totalZones} hotspot clusters covered today
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f97316', background: 'rgba(249, 115, 22, 0.08)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(249, 115, 22, 0.2)' }}>
+              Deploying to {highPlusUnpatrolled} additional HIGH+ zones recovers <span style={{fontWeight: 800}}>₹{recoveryCost.toLocaleString('en-IN')}</span> daily
+            </div>
           </div>
-        </div>
-
-        <div style={{ marginTop: 12, fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-          Deploying officers to {highPlusUnpatrolled} additional HIGH+ zones could recover ₹{recoveryCost.toLocaleString('en-IN')} in daily enforcement value
         </div>
       </div>
 

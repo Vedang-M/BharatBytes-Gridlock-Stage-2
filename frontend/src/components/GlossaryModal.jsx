@@ -12,7 +12,7 @@ const GLOSSARY = [
       { term: 'Critical Zones', definition: 'Areas assigned the highest CCS category, indicating frequent and severe traffic violations.' },
       { term: 'Daily ROI (Top 10)', definition: 'Estimated daily revenue recoverable by deploying officers to the top 10 highest-scoring hotspot zones.' },
       { term: 'Peak-Hour Share', definition: 'The percentage of traffic violations that occur during morning (7–11 AM) or evening (5–9 PM) rush hours.' },
-      { term: 'Enforcement Opportunity Cost', definition: 'Estimated revenue lost due to the absence of police deployment in high-violation zones.' },
+      { term: 'Enforcement Opportunity Cost', definition: 'Estimated economic loss from unpatrolled zones today.' },
       { term: 'Coverage Gap', definition: 'The percentage of identified hotspot zones that currently have no police patrol assigned.' },
       { term: 'HIGH+ Zones Exposed', definition: 'The number of HIGH or CRITICAL severity zones with no scheduled police coverage.' },
     ],
@@ -56,7 +56,7 @@ const GLOSSARY = [
       { term: 'Support', definition: 'The actual number of occurrences of a specific class or category within the dataset.' },
       { term: 'Confusion Matrix', definition: 'A table used to evaluate the performance of a classification model by comparing predicted and actual categories.' },
       { term: 'Feature Importance (SHAP)', definition: 'An analytical method used to determine which input variables most significantly influence the model\'s predictions.' },
-      { term: 'Model Blind Spot', definition: 'A category where the model exhibits 0% Precision or Recall, indicating an inability to reliably detect that class.' },
+      { term: 'Model Blind Spot Detector', definition: 'Classes where the model cannot reliably predict. It highlights categories where the model exhibits 0% Precision or Recall, indicating an inability to reliably detect that class.' },
     ],
   },
   {

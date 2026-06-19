@@ -151,7 +151,7 @@ export default function ModelScores() {
         <div>
           <h1 className="page-title">Model Diagnostics</h1>
           <p className="page-subtitle">
-            {metrics.model_name} Classifier · {metrics.train_size} training samples · {metrics.test_size} test samples
+            {metrics.model_name}{metrics.model_name.includes('Classifier') ? '' : ' Classifier'} · {metrics.train_size} training samples · {metrics.test_size} test samples
           </p>
         </div>
       </div>
@@ -316,28 +316,26 @@ export default function ModelScores() {
           <div className="card-title" style={{ margin: 0 }}>
             MODEL BLIND SPOT DETECTOR
           </div>
-          <div style={{ fontSize: '0.78rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-            Classes where the model cannot reliably predict
-          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '32px' }}>
           {/* LEFT: Blind Spots Identified */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card-alt, rgba(0,0,0,0.02))', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
               Blind Spots Identified
             </div>
-            {blindSpots.length === 0 ? (
-              <div style={{
-                background: 'rgba(34,197,94,0.08)', border: '1px solid #22c55e',
-                borderRadius: 8, padding: 16,
-              }}>
-                <span style={{ fontWeight: 600, color: '#22c55e' }}>No blind spots detected.</span>
-                <span style={{ color: 'var(--text-secondary)', marginLeft: 4, fontSize: '0.85rem' }}>
-                  All classes have sufficient training data and non-zero precision/recall.
-                </span>
-              </div>
-            ) : (
+            <div>
+              {blindSpots.length === 0 ? (
+                <div style={{
+                  background: 'rgba(34,197,94,0.08)', border: '1px solid #22c55e',
+                  borderRadius: 8, padding: 16, fontSize: '0.85rem', width: '100%'
+                }}>
+                  <span style={{ fontWeight: 600, color: '#22c55e' }}>No blind spots detected.</span>
+                  <span style={{ color: 'var(--text-secondary)', marginLeft: 4 }}>
+                    All classes have sufficient training data and non-zero precision/recall.
+                  </span>
+                </div>
+              ) : (
               <div>
                 {blindSpots.map((b) => (
                   <div key={b.category} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -363,10 +361,11 @@ export default function ModelScores() {
                 ))}
               </div>
             )}
+            </div>
           </div>
 
           {/* RIGHT: Detection Confidence by Class */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card-alt, rgba(0,0,0,0.02))', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
               Detection Confidence by Class
             </div>

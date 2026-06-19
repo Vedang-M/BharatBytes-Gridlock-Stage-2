@@ -13,9 +13,11 @@ ParkIQ is a state-of-the-art, AI-powered intelligence platform designed to analy
 *   **Congestion Cost Score (CCS)** – Calculates a custom traffic severity metric (`0` to `10`) for each hotspot using 6 weighted components (violation count, temporal density, average vehicle weight, etc.).
 *   **ML-Powered Predictions** – A trained machine learning classifier (Random Forest / Gradient Boosting) predicts spatial congestion severity.
 *   **7-Day Violation Risk Forecast** – Employs pattern-based historical analysis to forecast peak violation hours and risk levels.
-*   **Dynamic Enforcement Opportunity Cost** – Calculates the real-time daily economic loss caused by unpatrolled high-risk zones and predicts recoverable value.
+*   **Dynamic Enforcement Opportunity Cost** – Calculates the real-time daily economic loss caused by unpatrolled high-risk zones, presented in a premium glassmorphic UI with glowing pulse animations and dynamic shimmering progress bars.
 *   **City-Wide CCS Distribution Analytics** – Analyzes all identified zones directly via the backend API to provide a comprehensive, unbiased view of congestion severity proportional to the entire city.
-*   **Global Glossary Modal** – Centralized, fully searchable dictionary providing simplified, formal definitions for 30+ complex technical metrics across all modules.
+*   **Interactive Hotspot Profiles** – Dynamic, selectable widgets that render localized zone profiles and chart analytics instantly on demand.
+*   **Global Glossary Modal** – Centralized, fully searchable dictionary providing simplified, formal definitions for complex UI blocks (e.g., *Enforcement Opportunity Cost*, *Model Blind Spot Detector*) and 30+ technical metrics across all modules.
+*   **Model Diagnostics UI** – Structured visual sections detailing model confidence, test sample verification, and blind spot identification for full algorithmic transparency.
 *   **AI Copilot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Gemini and Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
 *   **Interactive Live Map** – Visualizes hotspot clusters, violation heatmaps, and police patrol routing in real-time.
 
