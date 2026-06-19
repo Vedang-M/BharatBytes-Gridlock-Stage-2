@@ -1,39 +1,39 @@
 {
-  "model_name": "CatBoost",
-  "accuracy": 0.8714,
-  "precision_weighted": 0.8744,
-  "recall_weighted": 0.8714,
-  "f1_weighted": 0.8718,
-  "f1_macro": 0.8717,
-  "balanced_accuracy": 0.8711,
-  "mcc": 0.8293,
-  "cohen_kappa": 0.8285,
-  "cv_f1_mean": 0.8633,
-  "cv_f1_std": 0.0101,
+  "model_name": "HistGradientBoostingRegressor",
+  "accuracy": 0.481,
+  "precision_weighted": 0.5255,
+  "recall_weighted": 0.481,
+  "f1_weighted": 0.4769,
+  "f1_macro": 0.4778,
+  "balanced_accuracy": 0.4822,
+  "mcc": 0.3174,
+  "cohen_kappa": 0.3084,
+  "cv_f1_mean": 0.4723,
+  "cv_f1_std": 0.0284,
   "confusion_matrix": [
     [
-      50,
+      14,
+      27,
+      10,
+      2
+    ],
+    [
+      5,
+      32,
+      13,
+      2
+    ],
+    [
       3,
-      0,
-      0
-    ],
-    [
-      4,
-      41,
-      7,
-      0
+      17,
+      23,
+      10
     ],
     [
       0,
       4,
-      46,
-      3
-    ],
-    [
-      0,
-      0,
-      6,
-      46
+      16,
+      32
     ]
   ],
   "categories": [
@@ -44,70 +44,50 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.9259,
-      "recall": 0.9434,
-      "f1": 0.9346,
+      "precision": 0.6364,
+      "recall": 0.2642,
+      "f1": 0.3733,
       "support": 53
     },
     "MODERATE": {
-      "precision": 0.8542,
-      "recall": 0.7885,
-      "f1": 0.82,
+      "precision": 0.4,
+      "recall": 0.6154,
+      "f1": 0.4848,
       "support": 52
     },
     "HIGH": {
-      "precision": 0.7797,
-      "recall": 0.8679,
-      "f1": 0.8214,
+      "precision": 0.371,
+      "recall": 0.434,
+      "f1": 0.4,
       "support": 53
     },
     "CRITICAL": {
-      "precision": 0.9388,
-      "recall": 0.8846,
-      "f1": 0.9109,
+      "precision": 0.6957,
+      "recall": 0.6154,
+      "f1": 0.6531,
       "support": 52
     }
   },
   "feature_importance": {
-    "peak_pct": 0.0452,
-    "avg_severity": 0.0814,
-    "avg_veh_weight": 0.18,
-    "main_road_pct": 0.0662,
-    "junction_pct": 0.0552,
-    "weekend_pct": 0.0067,
-    "unique_hours": -0.0062,
-    "n_violations_avg": 0.0305,
-    "unique_vehicle_types": 0.001,
-    "temporal_entropy": -0.0052,
-    "lat_center": -0.0033,
-    "lon_center": -0.0019,
-    "dist_to_center": -0.0024,
-    "nearby_violation_count": 0.011,
-    "nearby_avg_severity": 0.0048,
-    "severity_x_peak": 0.3243,
-    "heavy_traffic_index": 0.0962
+    "weekend_pct": -0.0298,
+    "unique_hours": 0.0353,
+    "n_violations_avg": 0.4981,
+    "unique_vehicle_types": 0.0702,
+    "temporal_entropy": 0.0343,
+    "lat_center": 0.2206,
+    "lon_center": 0.2038
   },
   "train_size": 840,
   "test_size": 210,
-  "n_features": 17,
+  "n_features": 7,
   "feature_names": [
-    "peak_pct",
-    "avg_severity",
-    "avg_veh_weight",
-    "main_road_pct",
-    "junction_pct",
     "weekend_pct",
     "unique_hours",
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
     "lat_center",
-    "lon_center",
-    "dist_to_center",
-    "nearby_violation_count",
-    "nearby_avg_severity",
-    "severity_x_peak",
-    "heavy_traffic_index"
+    "lon_center"
   ],
   "ccs_thresholds": {
     "LOW_MAX": 1.55,
