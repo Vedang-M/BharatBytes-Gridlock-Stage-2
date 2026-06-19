@@ -1,6 +1,6 @@
-"""Pydantic schemas for prediction endpoints."""
-from pydantic import BaseModel
-from typing import Dict, Optional
+"""Pydantic schemas for prediction and what-if endpoints."""
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Any
 
 
 class PredictionRequest(BaseModel):
@@ -49,3 +49,63 @@ class ModelMetrics(BaseModel):
     test_size: int
     n_features: int
     feature_names: list
+
+
+# ── What-If Schemas ────────────────────────────────────────────
+
+class WhatIfRequest(BaseModel):
+    """
+    Bounding box of the user-drawn zone on the map.
+    clearance_pct: how much of the parking violations to simulate clearing (0–100%).
+    """
+    lat_min: float = Field(..., description="South boundary latitude")
+    lat_max: float = Field(..., description="North boundary latitude")
+    lon_min: float = Field(..., description="West boundary longitude")
+    lon_max: float = Field(..., description="East boundary longitude")
+    clearance_pct: float = Field(
+        100.0, ge=0.0, le=100.0,
+        description="Percentage of violations assumed cleared (0–100)"
+    )
+
+
+class BeforeAfterMetrics(BaseModel):
+    violations: int
+    peak_pct: float
+    ccs: float
+    ccs_category: str
+
+
+class WhatIfImpact(BaseModel):
+    violations_cleared: int
+    ccs_reduction: float
+    ccs_reduction_pct: float
+    flow_improvement_pct: float
+    delay_saved_min: float
+    total_savings_inr: int
+    roi_vot_saved: int
+    roi_fuel_saved: int
+
+
+class ClearedViolationType(BaseModel):
+    type: str
+    count: int
+    cleared: int
+
+
+class AffectedCluster(BaseModel):
+    name: str
+    ccs: float
+    category: str
+    violations: int
+
+
+class WhatIfResponse(BaseModel):
+    zone_bounds: Dict[str, float]
+    clearance_pct: float
+    before: Dict[str, Any]
+    after: Dict[str, Any]
+    impact: WhatIfImpact
+    cleared_by_type: List[ClearedViolationType]
+    peak_hours: List[Dict[str, Any]]
+    vehicle_mix: List[Dict[str, Any]]
+    affected_clusters: List[AffectedCluster]

@@ -5,6 +5,7 @@ import {
   AreaChart, Area, CartesianGrid,
 } from 'recharts';
 import { getTemporalData, getDailyTrend, getForecast, getSchedule } from '../api/backendApi';
+import WhatIfZonePlanner from '../components/WhatIfZonePlanner';
 
 const HOUR_COLOR = (h) => ((h >= 7 && h <= 11) || (h >= 17 && h <= 21)) ? 'url(#peakBarGradient)' : 'url(#normalBarGradient)';
 
@@ -65,12 +66,12 @@ export default function Analytics() {
               <BarChart data={hourly} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="peakBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="#991b1b" stopOpacity={0.3}/>
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#991b1b" stopOpacity={0.3} />
                   </linearGradient>
                   <linearGradient id="normalBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.3} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="hour_ist" tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }} />
@@ -104,8 +105,8 @@ export default function Analytics() {
               <BarChart data={daily} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="dailyBarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.3} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="dow_ist" tick={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }} />
@@ -152,8 +153,8 @@ export default function Analytics() {
               <AreaChart data={trend.slice(-90)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="areaTrendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.25}/>
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0}/>
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
@@ -244,6 +245,12 @@ export default function Analytics() {
           )}
         </div>
       </div>
+
+      {/* ── What-If Zone Planner ─────────────────────────────── */}
+      <div className="flat-card" style={{ marginBottom: 24 }}>
+        <WhatIfZonePlanner apiBase="http://localhost:8000" />
+      </div>
+
     </div>
   );
 }

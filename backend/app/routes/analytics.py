@@ -52,3 +52,37 @@ def roi_calc(
         vot=vot, vph=vph, delay=delay, fuel=fuel,
         sessions=sessions, session_hr=session_hr, top_n=top_n,
     )
+
+
+@router.get("/what-if")
+def what_if_simulation(
+    request: Request,
+    lat_min: float = Query(..., description="Bounding box south latitude"),
+    lat_max: float = Query(..., description="Bounding box north latitude"),
+    lon_min: float = Query(..., description="Bounding box west longitude"),
+    lon_max: float = Query(..., description="Bounding box east longitude"),
+    clearance_pct: float = Query(100.0, ge=0.0, le=100.0, description="% of violations to clear (0–100)"),
+):
+    """
+    Simulate the congestion impact if illegal parking is cleared
+    inside the user-drawn bounding box.
+
+    Query params:
+      lat_min, lat_max, lon_min, lon_max  – bounding box corners
+      clearance_pct                        – how much of the parking to clear (default 100%)
+
+    Returns before/after CCS, traffic flow improvement %,
+    savings in INR, violation breakdown, and affected clusters.
+    """
+    svc = request.app.state.analytics_service
+    hs  = request.app.state.hotspot_service
+
+    result = svc.simulate_whatif(
+        lat_min=lat_min,
+        lat_max=lat_max,
+        lon_min=lon_min,
+        lon_max=lon_max,
+        clearance_pct=clearance_pct,
+        clusters=hs.clusters,
+    )
+    return result

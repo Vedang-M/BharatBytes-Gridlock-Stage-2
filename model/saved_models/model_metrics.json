@@ -1,11 +1,11 @@
 {
   "model_name": "HistGradientBoosting",
-  "accuracy": 0.9333,
-  "precision_weighted": 0.934,
-  "recall_weighted": 0.9333,
-  "f1_weighted": 0.9336,
-  "cohen_kappa": 0.8697,
-  "cv_f1_score": 0.972,
+  "accuracy": 0.9238,
+  "precision_weighted": 0.9247,
+  "recall_weighted": 0.9238,
+  "f1_weighted": 0.9241,
+  "cohen_kappa": 0.8522,
+  "cv_f1_score": 0.9725,
   "confusion_matrix": [
     [
       43,
@@ -14,8 +14,8 @@
       0
     ],
     [
-      2,
-      131,
+      4,
+      129,
       4,
       0
     ],
@@ -40,15 +40,15 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.9556,
+      "precision": 0.9149,
       "recall": 0.9348,
-      "f1": 0.9451,
+      "f1": 0.9247,
       "support": 46
     },
     "MODERATE": {
-      "precision": 0.9562,
-      "recall": 0.9562,
-      "f1": 0.9562,
+      "precision": 0.9556,
+      "recall": 0.9416,
+      "f1": 0.9485,
       "support": 137
     },
     "HIGH": {
@@ -65,18 +65,18 @@
     }
   },
   "feature_importance": {
-    "violation_count": 0.0189,
-    "peak_pct": 0.2188,
-    "avg_severity": 0.1671,
-    "max_severity": 0.0017,
-    "avg_veh_weight": 0.1174,
-    "main_road_pct": 0.0884,
-    "junction_pct": 0.1437,
-    "weekend_pct": 0.011,
-    "unique_hours": -0.0031,
-    "n_violations_avg": 0.0056,
-    "unique_vehicle_types": 0.0035,
-    "temporal_entropy": 0.001
+    "violation_count": 0.0114,
+    "peak_pct": 0.2095,
+    "avg_severity": 0.1591,
+    "max_severity": -0.0042,
+    "avg_veh_weight": 0.1016,
+    "main_road_pct": 0.08,
+    "junction_pct": 0.1406,
+    "weekend_pct": -0.0012,
+    "unique_hours": -0.0055,
+    "n_violations_avg": 0.0026,
+    "unique_vehicle_types": -0.0089,
+    "temporal_entropy": -0.0069
   },
   "train_size": 2200,
   "test_size": 210,
