@@ -276,4 +276,5 @@ class HotspotService:
             "high_zones": int((c["CCS_category"] == "HIGH").sum()),
             "peak_pct": round(float(self.df["is_peak"].mean() * 100), 1),
             "top10_roi": int(c.head(10)["total_roi_inr"].sum()),
+            "ccs_distribution": c["CCS_category"].value_counts().to_dict(),
         }

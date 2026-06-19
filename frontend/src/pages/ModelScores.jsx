@@ -235,7 +235,7 @@ export default function ModelScores() {
               <table className="data-table table-grid-perclass">
                 <thead>
                   <tr>
-                    <th>Category</th>
+                    <th style={{ justifyContent: 'center' }}>Category</th>
                     <th style={{ textAlign: 'center' }}>Precision</th>
                     <th style={{ textAlign: 'center' }}>Recall</th>
                     <th style={{ textAlign: 'center' }}>F1</th>
@@ -245,7 +245,7 @@ export default function ModelScores() {
                 <tbody>
                   {Object.entries(metrics.per_class_metrics).map(([cat, m]) => (
                     <tr key={cat}>
-                      <td><span className={`badge badge-${cat.toLowerCase()}`}>{cat}</span></td>
+                      <td style={{ justifyContent: 'center' }}><span className={`badge badge-${cat.toLowerCase()}`}>{cat}</span></td>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.precision * 100).toFixed(1)}%</td>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.recall * 100).toFixed(1)}%</td>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{(m.f1 * 100).toFixed(1)}%</td>
@@ -419,7 +419,7 @@ export default function ModelScores() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Class</th>
+                    <th style={{ textAlign: 'center' }}>Class</th>
                     <th style={{ textAlign: 'center' }}>Current Samples</th>
                     <th style={{ textAlign: 'center' }}>Required</th>
                     <th style={{ textAlign: 'center' }}>Gap</th>
@@ -430,7 +430,7 @@ export default function ModelScores() {
                     const gap = Math.max(0, 30 - b.support);
                     return (
                       <tr key={b.category}>
-                        <td><span className={`badge badge-${b.category.toLowerCase()}`}>{b.category}</span></td>
+                        <td style={{ textAlign: 'center' }}><span className={`badge badge-${b.category.toLowerCase()}`}>{b.category}</span></td>
                         <td style={{ textAlign: 'center', fontWeight: 600, color: b.support < 5 ? '#ef4444' : 'var(--text-primary)' }}>
                           {b.support}
                         </td>

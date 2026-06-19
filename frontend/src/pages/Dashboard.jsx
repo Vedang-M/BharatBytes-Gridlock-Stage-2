@@ -60,12 +60,10 @@ export default function Dashboard() {
     );
   }
 
-  const ccsDist = {};
-  hotspots.forEach((h) => {
-    const cat = h.CCS_category || 'LOW';
-    ccsDist[cat] = (ccsDist[cat] || 0) + 1;
-  });
-  const ccsChartData = Object.entries(ccsDist).map(([name, value]) => ({ name, value }));
+  const ccsDist = summary?.ccs_distribution || {};
+  const ccsChartData = Object.entries(ccsDist)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value); // Sort so largest slices are first
 
   const top = hotspots[0];
   const radarData = top ? [
@@ -217,17 +215,17 @@ export default function Dashboard() {
             </svg>
             CCS Distribution
           </div>
-          <div className="chart-wrapper" style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }} ref={pieChartRef}>
+          <div className="chart-wrapper" style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 500 }} ref={pieChartRef}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ left: 50, right: 50, top: 20, bottom: 20 }}>
                 <Pie
                   data={ccsChartData}
                   dataKey="value"
                   nameKey="name"
-                  cx="44%"
+                  cx="50%"
                   cy="50%"
-                  innerRadius="50%"
-                  outerRadius="65%"
+                  innerRadius="60%"
+                  outerRadius="80%"
                   paddingAngle={3}
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
