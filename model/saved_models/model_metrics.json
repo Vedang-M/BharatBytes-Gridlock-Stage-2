@@ -1,39 +1,39 @@
 {
   "model_name": "StackingClassifier",
-  "accuracy": 0.7333,
-  "precision_weighted": 0.733,
-  "recall_weighted": 0.7333,
-  "f1_weighted": 0.7325,
-  "f1_macro": 0.7324,
-  "balanced_accuracy": 0.733,
-  "mcc": 0.6447,
-  "cohen_kappa": 0.6444,
-  "cv_f1_mean": 0.717,
+  "accuracy": 0.7429,
+  "precision_weighted": 0.7429,
+  "recall_weighted": 0.7429,
+  "f1_weighted": 0.739,
+  "f1_macro": 0.7388,
+  "balanced_accuracy": 0.7423,
+  "mcc": 0.6593,
+  "cohen_kappa": 0.657,
+  "cv_f1_mean": 0.7225,
   "cv_f1_std": 0.0,
   "confusion_matrix": [
     [
-      44,
-      9,
-      0,
-      0
-    ],
-    [
-      12,
-      31,
-      9,
-      0
-    ],
-    [
-      0,
+      45,
       8,
-      37,
+      0,
+      0
+    ],
+    [
+      13,
+      28,
+      11,
+      0
+    ],
+    [
+      1,
+      4,
+      40,
       8
     ],
     [
       0,
       0,
-      10,
-      42
+      9,
+      43
     ]
   ],
   "categories": [
@@ -44,43 +44,44 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.7857,
-      "recall": 0.8302,
-      "f1": 0.8073,
+      "precision": 0.7627,
+      "recall": 0.8491,
+      "f1": 0.8036,
       "support": 53
     },
     "MODERATE": {
-      "precision": 0.6458,
-      "recall": 0.5962,
-      "f1": 0.62,
+      "precision": 0.7,
+      "recall": 0.5385,
+      "f1": 0.6087,
       "support": 52
     },
     "HIGH": {
-      "precision": 0.6607,
-      "recall": 0.6981,
-      "f1": 0.6789,
+      "precision": 0.6667,
+      "recall": 0.7547,
+      "f1": 0.708,
       "support": 53
     },
     "CRITICAL": {
-      "precision": 0.84,
-      "recall": 0.8077,
-      "f1": 0.8235,
+      "precision": 0.8431,
+      "recall": 0.8269,
+      "f1": 0.835,
       "support": 52
     }
   },
   "feature_importance": {
-    "weekend_pct": 0.0029,
-    "unique_hours": -0.0024,
-    "n_violations_avg": 0.0648,
-    "unique_vehicle_types": 0.011,
-    "temporal_entropy": 0.0133,
-    "peak_pct": 0.2557,
-    "main_road_pct": 0.1724,
-    "junction_pct": 0.2043
+    "weekend_pct": -0.0052,
+    "unique_hours": 0.0057,
+    "n_violations_avg": 0.0867,
+    "unique_vehicle_types": 0.0133,
+    "temporal_entropy": 0.0162,
+    "peak_pct": 0.2695,
+    "main_road_pct": 0.1838,
+    "junction_pct": 0.1867,
+    "lag_ccs": 0.0248
   },
   "train_size": 840,
   "test_size": 210,
-  "n_features": 8,
+  "n_features": 9,
   "feature_names": [
     "weekend_pct",
     "unique_hours",
@@ -89,7 +90,8 @@
     "temporal_entropy",
     "peak_pct",
     "main_road_pct",
-    "junction_pct"
+    "junction_pct",
+    "lag_ccs"
   ],
   "ccs_thresholds": {
     "LOW_MAX": 1.55,

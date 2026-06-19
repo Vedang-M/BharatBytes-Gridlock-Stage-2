@@ -70,7 +70,9 @@ def create_grid_features(df: pd.DataFrame = None):
             peak_pct=("is_peak", "mean"),
             avg_severity=("severity_score", "mean"),
             max_severity=("severity_score", "max"),
+            std_severity=("severity_score", "std"),
             avg_veh_weight=("veh_weight", "mean"),
+            std_veh_weight=("veh_weight", "std"),
             main_road_pct=("is_main_road", "mean"),
             junction_pct=("at_junction", "mean"),
             weekend_pct=("is_weekend", "mean"),
@@ -93,6 +95,14 @@ def create_grid_features(df: pd.DataFrame = None):
     # Drop cells with too few violations for statistical reliability
     MIN_VIOLATIONS = 5
     cells = cells[cells["violation_count"] >= MIN_VIOLATIONS].copy()
+    
+    # Fill NaN stds (occurs if only 1 item)
+    cells["std_severity"] = cells["std_severity"].fillna(0)
+    cells["std_veh_weight"] = cells["std_veh_weight"].fillna(0)
+    
+    # Temporal Context (Weekend Ratio)
+    cells["weekend_ratio"] = cells["weekend_pct"] / (1.0 - cells["weekend_pct"] + 1e-5)
+    
     print(f"  Grid cells (≥{MIN_VIOLATIONS} violations): {len(cells):,}")
 
     # ── K-Means Spatial Clustering ────────────────────────────
@@ -127,6 +137,24 @@ def create_grid_features(df: pd.DataFrame = None):
         labels=["LOW", "MODERATE", "HIGH", "CRITICAL"],
         duplicates="drop"
     )
+
+    # ── Spatial Lag Features (Moore Neighborhood) ────────────────
+    vc_dict = dict(zip(cells["cell_id"], cells["violation_count"]))
+    ccs_dict = dict(zip(cells["cell_id"], cells["CCS"]))
+    
+    def get_moore_lag(row, val_dict):
+        lat = row["lat_bin"]
+        lon = row["lon_bin"]
+        neighbors = [
+            f"{lat-1}_{lon-1}", f"{lat-1}_{lon}", f"{lat-1}_{lon+1}",
+            f"{lat}_{lon-1}",                     f"{lat}_{lon+1}",
+            f"{lat+1}_{lon-1}", f"{lat+1}_{lon}", f"{lat+1}_{lon+1}"
+        ]
+        vals = [val_dict.get(n) for n in neighbors if val_dict.get(n) is not None]
+        return np.mean(vals) if vals else 0.0
+
+    cells["lag_violation_count"] = cells.apply(lambda r: get_moore_lag(r, vc_dict), axis=1)
+    cells["lag_ccs"] = cells.apply(lambda r: get_moore_lag(r, ccs_dict), axis=1)
 
     print(f"  CCS distribution: {cells['CCS_category'].value_counts().to_dict()}")
     return cells, FEATURE_COLS

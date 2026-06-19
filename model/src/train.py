@@ -42,7 +42,8 @@ FEATURE_COLS = [
     "temporal_entropy",
     "peak_pct",
     "main_road_pct",
-    "junction_pct"
+    "junction_pct",
+    "lag_ccs"
 ]
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
@@ -77,20 +78,21 @@ def train_models(df: pd.DataFrame):
     def categorize_scores(scores):
         return pd.cut(scores, bins=bins, labels=actual_categories, include_lowest=True)
 
-    # Scale features
-    scaler = RobustScaler()
-    X_scaled = scaler.fit_transform(X)
-
     # Train / Test Split
-    X_train, X_test, y_clf_train, y_clf_test, y_reg_train, y_reg_test = train_test_split(
-        X_scaled, y_clf_enc, y_reg, test_size=0.2, random_state=42, stratify=y_clf_enc
+    X_train_raw, X_test_raw, y_clf_train, y_clf_test, y_reg_train, y_reg_test = train_test_split(
+        X, y_clf_enc, y_reg, test_size=0.2, random_state=42, stratify=y_clf_enc
     )
+
+    # Scale features AFTER split to prevent data leakage
+    scaler = RobustScaler()
+    X_train = scaler.fit_transform(X_train_raw)
+    X_test = scaler.transform(X_test_raw)
 
     print(f"  Train: {len(X_train):,}   Test: {len(X_test):,}")
     train_dist = dict(zip(*np.unique(le.inverse_transform(y_clf_train), return_counts=True)))
     print(f"  Train distribution: {train_dist}")
 
-    # Optuna & Stacking
+    # Optuna & Stacking Benchmark
     print("\n🚀 Evaluating StackingClassifier with Optuna …")
     
     def objective(trial):
@@ -128,9 +130,10 @@ def train_models(df: pd.DataFrame):
         return np.mean(f1_scores)
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study = optuna.create_study(direction='maximize')
-    print("   Running 20 trials...")
-    study.optimize(objective, n_trials=20)
+    sampler = optuna.samplers.TPESampler(seed=42)
+    study = optuna.create_study(direction='maximize', sampler=sampler)
+    print("   Running 30 trials...")
+    study.optimize(objective, n_trials=30)
     
     print(f"  Best params: {study.best_params}")
     print(f"  Best CV F1: {study.best_value:.4f}")
