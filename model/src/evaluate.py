@@ -23,10 +23,13 @@ MODEL_DIR = os.path.join(PROJECT_ROOT, "model", "saved_models")
 
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 FEATURE_COLS = [
-    "violation_count", "peak_pct", "avg_severity", "max_severity",
-    "avg_veh_weight", "main_road_pct", "junction_pct", "weekend_pct",
-    "unique_hours", "n_violations_avg", "unique_vehicle_types",
+    "weekend_pct",
+    "unique_hours",
+    "n_violations_avg",
+    "unique_vehicle_types",
     "temporal_entropy",
+    "lat_center",
+    "lon_center"
 ]
 
 
@@ -80,17 +83,16 @@ def plot_feature_importance(model, feature_names):
     print(f"  Saved → {path}")
 
 
-def plot_roc_curves(model, X_test, y_test, le):
+def plot_roc_curves(model, X_test, y_test, le, y_prob):
     """One-vs-rest ROC curves for each CCS category."""
     n_classes = len(CATEGORIES)
     y_bin = label_binarize(y_test, classes=list(range(n_classes)))
 
-    # Need predict_proba
-    if not hasattr(model, "predict_proba"):
+    if y_prob is None or len(y_prob) == 0:
         print("  (model has no predict_proba — skipping ROC)")
         return
 
-    y_score = model.predict_proba(X_test)
+    y_score = y_prob
 
     fig, axes = plt.subplots(1, n_classes, figsize=(5 * n_classes, 4))
     if n_classes == 1:
@@ -159,11 +161,12 @@ if __name__ == "__main__":
 
     model, le, data, metrics = load_artifacts()
     X_test, y_test, y_pred = data["X_test"], data["y_test"], data["y_pred"]
+    y_prob = data["y_prob"] if "y_prob" in data else []
 
     print("\nGenerating plots …")
     plot_confusion_matrix(y_test, y_pred, le)
     plot_feature_importance(model, FEATURE_COLS)
-    plot_roc_curves(model, X_test, y_test, le)
+    plot_roc_curves(model, X_test, y_test, le, y_prob)
     plot_metrics_summary(metrics)
 
     print("\n📊 Classification report:")

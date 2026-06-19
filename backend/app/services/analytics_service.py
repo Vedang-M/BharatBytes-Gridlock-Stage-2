@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
+from app.utils.ccs_helper import get_ccs_category
 
 
 class AnalyticsService:
@@ -279,11 +280,6 @@ class AnalyticsService:
         cleared_breakdown = top_types.to_dict(orient="records")
 
         # ── 8. Category label ──────────────────────────────
-        def _cat(s):
-            if s >= 4.5: return "CRITICAL"
-            if s >= 3.0: return "HIGH"
-            if s >= 1.5: return "MODERATE"
-            return "LOW"
 
         # ── 9. Nearby hotspot clusters affected ───────────
         affected_clusters = []
@@ -336,7 +332,7 @@ class AnalyticsService:
                 "main_road_pct":   before_main_road,
                 "at_junction_pct": before_at_junc,
                 "ccs":             ccs_before,
-                "ccs_category":    _cat(ccs_before),
+                "ccs_category":    get_ccs_category(ccs_before),
             },
 
             # After
@@ -344,7 +340,7 @@ class AnalyticsService:
                 "violations":   after_violations,
                 "peak_pct":     after_peak_pct,
                 "ccs":          ccs_after,
-                "ccs_category": _cat(ccs_after),
+                "ccs_category": get_ccs_category(ccs_after),
             },
 
             # Impact

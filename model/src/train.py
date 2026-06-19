@@ -1,6 +1,6 @@
 """
 ParkIQ – Model Training Pipeline
-Trains RandomForest + GradientBoosting, selects the best, saves artifacts.
+Trains Classifier & Regressor, selects the best, saves artifacts.
 """
 import os
 import sys
@@ -9,28 +9,14 @@ import warnings
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.model_selection import (
-    train_test_split,
-    StratifiedKFold,
-)
-from sklearn.experimental import enable_halving_search_cv  # noqa
-from sklearn.model_selection import HalvingGridSearchCV
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    HistGradientBoostingClassifier,
-)
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    classification_report,
-    confusion_matrix,
-    cohen_kappa_score,
+    accuracy_score, precision_score, recall_score, f1_score,
+    classification_report, confusion_matrix, cohen_kappa_score,
+    balanced_accuracy_score, matthews_corrcoef
 )
 from sklearn.preprocessing import LabelEncoder, RobustScaler
-# pyrefly: ignore [missing-import]
-from imblearn.over_sampling import SMOTE
 
 warnings.filterwarnings("ignore")
 
@@ -43,114 +29,128 @@ MODEL_DIR = os.path.join(PROJECT_ROOT, "model", "saved_models")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 FEATURE_COLS = [
-    "violation_count", "peak_pct", "avg_severity", "max_severity",
-    "avg_veh_weight", "main_road_pct", "junction_pct", "weekend_pct",
-    "unique_hours", "n_violations_avg", "unique_vehicle_types",
+    "weekend_pct",
+    "unique_hours",
+    "n_violations_avg",
+    "unique_vehicle_types",
     "temporal_entropy",
+    "lat_center",
+    "lon_center"
 ]
-TARGET_COL = "CCS_category"
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
-
-# ═══════════════════════════════════════════════════════════════
-def load_features() -> pd.DataFrame:
-    csv_path = os.path.join(PROCESSED_DIR, "jan to may police violation_anonymized791b166.csv")
-    df = pd.read_csv(csv_path)
-    print(f"[train] Loaded {len(df):,} grid cells from {csv_path}")
-    return df
-
-
 def train_models(df: pd.DataFrame):
-    """Train, compare, and persist the best classifier."""
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     X = df[FEATURE_COLS].values
-    y = df[TARGET_COL].values
+    
+    # We will need the CCS score for regression, and CCS_category for classification
+    y_reg = df["CCS"].values
+    y_cat = df["CCS_category"].values
 
     # Encode labels
     le = LabelEncoder()
     le.classes_ = np.array(CATEGORIES)
-    y_enc = le.transform(y)
+    y_clf_enc = le.transform(y_cat)
+
+    # Calculate dynamic thresholds using the exact bins from the dataset
+    # We use pd.qcut to get the exact thresholds used
+    _, bins = pd.qcut(df["CCS"], q=4, retbins=True, duplicates="drop")
+    
+    # Handle the case where fewer than 4 bins are created due to duplicates
+    actual_categories = CATEGORIES[-len(bins)+1:] if len(bins) - 1 < len(CATEGORIES) else CATEGORIES
+    
+    ccs_thresholds = {
+        "LOW_MAX": float(bins[1]),
+        "MODERATE_MAX": float(bins[2]) if len(bins) > 2 else float(bins[-1]),
+        "HIGH_MAX": float(bins[3]) if len(bins) > 3 else float(bins[-1]),
+    }
+    
+    # Helper to categorize regression output
+    def categorize_scores(scores):
+        return pd.cut(scores, bins=bins, labels=actual_categories, include_lowest=True)
 
     # Scale features
     scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Stratified 80 / 20 split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y_enc, test_size=0.2, random_state=42, stratify=y_enc,
+    # Train / Test Split
+    X_train, X_test, y_clf_train, y_clf_test, y_reg_train, y_reg_test = train_test_split(
+        X_scaled, y_clf_enc, y_reg, test_size=0.2, random_state=42, stratify=y_clf_enc
     )
-    print(f"  Train (before SMOTE): {len(X_train):,}   Test: {len(X_test):,}")
-    train_dist_before = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
-    print(f"  Train distribution (before SMOTE): {train_dist_before}")
 
-    print(f"  Oversampling classes using imbalanced-learn SMOTE")
-    # SMOTE requires at least k_neighbors + 1 samples per class. 
-    # If a class (like CRITICAL) has only 1 sample, we must duplicate it first.
-    from imblearn.over_sampling import RandomOverSampler
-    counts = pd.Series(y_train).value_counts().to_dict()
-    ros_strategy = {k: max(v, 3) for k, v in counts.items()}
-    ros = RandomOverSampler(sampling_strategy=ros_strategy, random_state=42)
-    X_train, y_train = ros.fit_resample(X_train, y_train)
+    print(f"  Train: {len(X_train):,}   Test: {len(X_test):,}")
+    train_dist = dict(zip(*np.unique(le.inverse_transform(y_clf_train), return_counts=True)))
+    print(f"  Train distribution: {train_dist}")
 
-    # Now apply SMOTE safely
-    smote = SMOTE(random_state=42, k_neighbors=2)
-    X_train, y_train = smote.fit_resample(X_train, y_train)
+    # Cross-validation
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    
+    print("\n🚀 Evaluating HistGradientBoostingClassifier …")
+    clf = HistGradientBoostingClassifier(random_state=42, class_weight='balanced')
+    clf_f1_scores = []
+    
+    for train_idx, val_idx in cv.split(X_train, y_clf_train):
+        X_tr, y_tr = X_train[train_idx], y_clf_train[train_idx]
+        X_val, y_val = X_train[val_idx], y_clf_train[val_idx]
+        clf.fit(X_tr, y_tr)
+        preds = clf.predict(X_val)
+        clf_f1_scores.append(f1_score(y_val, preds, average="weighted"))
+        
+    clf_mean_f1 = np.mean(clf_f1_scores)
+    clf_std_f1 = np.std(clf_f1_scores)
+    print(f"  Classifier CV F1: {clf_mean_f1:.4f} ± {clf_std_f1:.4f}")
 
-    print(f"  Train (after SMOTE): {len(X_train):,}   Test: {len(X_test):,}")
-    train_dist_after = dict(zip(*np.unique(le.inverse_transform(y_train), return_counts=True)))
-    print(f"  Train distribution (after SMOTE): {train_dist_after}")
+    print("\n📈 Evaluating HistGradientBoostingRegressor …")
+    reg = HistGradientBoostingRegressor(random_state=42)
+    reg_f1_scores = []
+    
+    for train_idx, val_idx in cv.split(X_train, y_clf_train):
+        X_tr, y_tr_reg = X_train[train_idx], y_reg_train[train_idx]
+        X_val, y_val_clf = X_train[val_idx], y_clf_train[val_idx]
+        reg.fit(X_tr, y_tr_reg)
+        reg_preds = reg.predict(X_val)
+        # categorize
+        cat_preds = categorize_scores(reg_preds)
+        # encode
+        cat_preds_filled = cat_preds.fillna("LOW") # just a fallback
+        enc_preds = le.transform(cat_preds_filled)
+        reg_f1_scores.append(f1_score(y_val_clf, enc_preds, average="weighted"))
+        
+    reg_mean_f1 = np.mean(reg_f1_scores)
+    reg_std_f1 = np.std(reg_f1_scores)
+    print(f"  Regressor CV F1: {reg_mean_f1:.4f} ± {reg_std_f1:.4f}")
 
-    cv = StratifiedKFold(5, shuffle=True, random_state=42)
-
-    # ── Random Forest ──────────────────────────────────────
-    print("\n🌲 Training Random Forest …")
-    rf_grid = {
-        "n_estimators": [100, 200],
-        "max_depth": [10, 20, None],
-        "min_samples_split": [2, 5],
-        "class_weight": ["balanced"],
-    }
-    rf_cv = HalvingGridSearchCV(
-        RandomForestClassifier(random_state=42, n_jobs=-1),
-        rf_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0, random_state=42, factor=2
-    )
-    rf_cv.fit(X_train, y_train)
-    print(f"  Best CV F1: {rf_cv.best_score_:.4f}  params={rf_cv.best_params_}")
-
-    # ── Hist Gradient Boosting ──────────────────────────────────
-    print("\n🚀 Training Hist Gradient Boosting …")
-    gbt_grid = {
-        "max_iter": [100, 200],
-        "max_depth": [3, 5, 7],
-        "learning_rate": [0.05, 0.1],
-    }
-    gbt_cv = HalvingGridSearchCV(
-        HistGradientBoostingClassifier(random_state=42, class_weight='balanced'),
-        gbt_grid, cv=cv, scoring="f1_weighted", n_jobs=-1, verbose=0, random_state=42, factor=2
-    )
-    gbt_cv.fit(X_train, y_train)
-    print(f"  Best CV F1: {gbt_cv.best_score_:.4f}  params={gbt_cv.best_params_}")
-
-    # ── Pick winner ────────────────────────────────────────
-    if gbt_cv.best_score_ >= rf_cv.best_score_:
-        best_model, best_name, best_cv = gbt_cv.best_estimator_, "HistGradientBoosting", gbt_cv.best_score_
+    # Pick winner
+    if reg_mean_f1 > clf_mean_f1:
+        print("\n✅ Winner: HistGradientBoostingRegressor")
+        best_name = "HistGradientBoostingRegressor"
+        best_model = reg
+        best_model.fit(X_train, y_reg_train)
+        y_pred_raw = best_model.predict(X_test)
+        y_pred_cat = categorize_scores(y_pred_raw).fillna("LOW")
+        y_pred = le.transform(y_pred_cat)
     else:
-        best_model, best_name, best_cv = rf_cv.best_estimator_, "RandomForest", rf_cv.best_score_
-    print(f"\n✅ Winner: {best_name}  (CV F1 = {best_cv:.4f})")
-
-    # ── Test-set evaluation ────────────────────────────────
-    y_pred = best_model.predict(X_test)
+        print("\n✅ Winner: HistGradientBoostingClassifier")
+        best_name = "HistGradientBoostingClassifier"
+        best_model = clf
+        best_model.fit(X_train, y_clf_train)
+        y_pred = best_model.predict(X_test)
+        
     y_pred_labels = le.inverse_transform(y_pred)
-    y_test_labels = le.inverse_transform(y_test)
-
-    acc  = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred, average="weighted", zero_division=0)
-    rec  = recall_score(y_test, y_pred, average="weighted", zero_division=0)
-    f1   = f1_score(y_test, y_pred, average="weighted", zero_division=0)
-    kappa = cohen_kappa_score(y_test, y_pred)
-    cm   = confusion_matrix(y_test, y_pred, labels=np.arange(len(CATEGORIES))).tolist()
-
+    y_test_labels = le.inverse_transform(y_clf_test)
+    
+    # Metrics
+    acc = accuracy_score(y_clf_test, y_pred)
+    prec = precision_score(y_clf_test, y_pred, average="weighted", zero_division=0)
+    rec = recall_score(y_clf_test, y_pred, average="weighted", zero_division=0)
+    f1_weighted = f1_score(y_clf_test, y_pred, average="weighted", zero_division=0)
+    f1_macro = f1_score(y_clf_test, y_pred, average="macro", zero_division=0)
+    bal_acc = balanced_accuracy_score(y_clf_test, y_pred)
+    mcc = matthews_corrcoef(y_clf_test, y_pred)
+    kappa = cohen_kappa_score(y_clf_test, y_pred)
+    cm = confusion_matrix(y_clf_test, y_pred, labels=np.arange(len(CATEGORIES))).tolist()
+    
     report = classification_report(
         y_test_labels, y_pred_labels, labels=CATEGORIES, target_names=CATEGORIES, output_dict=True, zero_division=0,
     )
@@ -164,31 +164,25 @@ def train_models(df: pd.DataFrame):
                 "support":   int(report[cat]["support"]),
             }
 
-    importance = {}
-    if hasattr(best_model, "feature_importances_"):
-        importance = dict(
-            zip(FEATURE_COLS, best_model.feature_importances_.round(4).tolist())
-        )
-    else:
-        # Fallback: permutation importance (works for any estimator)
-        from sklearn.inspection import permutation_importance
-        perm_result = permutation_importance(
-            best_model, X_test, y_test,
-            n_repeats=10, random_state=42, scoring="f1_weighted",
-        )
-        importance = dict(
-            zip(FEATURE_COLS, perm_result.importances_mean.round(4).tolist())
-        )
-        print("  (Used permutation importance as fallback)")
+    from sklearn.inspection import permutation_importance
+    perm_result = permutation_importance(
+        best_model, X_test, (y_clf_test if best_name == "HistGradientBoostingClassifier" else y_reg_test),
+        n_repeats=10, random_state=42
+    )
+    importance = dict(zip(FEATURE_COLS, perm_result.importances_mean.round(4).tolist()))
 
     metrics = {
         "model_name":        best_name,
         "accuracy":          round(acc, 4),
         "precision_weighted": round(prec, 4),
         "recall_weighted":   round(rec, 4),
-        "f1_weighted":       round(f1, 4),
+        "f1_weighted":       round(f1_weighted, 4),
+        "f1_macro":          round(f1_macro, 4),
+        "balanced_accuracy": round(bal_acc, 4),
+        "mcc":               round(mcc, 4),
         "cohen_kappa":       round(kappa, 4),
-        "cv_f1_score":       round(best_cv, 4),
+        "cv_f1_mean":        round(clf_mean_f1 if best_name == "HistGradientBoostingClassifier" else reg_mean_f1, 4),
+        "cv_f1_std":         round(clf_std_f1 if best_name == "HistGradientBoostingClassifier" else reg_std_f1, 4),
         "confusion_matrix":  cm,
         "categories":        CATEGORIES,
         "per_class_metrics": per_class,
@@ -197,18 +191,17 @@ def train_models(df: pd.DataFrame):
         "test_size":         int(len(X_test)),
         "n_features":        len(FEATURE_COLS),
         "feature_names":     FEATURE_COLS,
+        "ccs_thresholds":    ccs_thresholds,
+        "bins":              list(bins)
     }
 
     print(f"\n📊 Test-set results:")
     print(f"  Accuracy : {acc:.4f}")
-    print(f"  Precision: {prec:.4f}")
-    print(f"  Recall   : {rec:.4f}")
-    print(f"  F1       : {f1:.4f}")
+    print(f"  F1 Macro : {f1_macro:.4f}")
+    print(f"  F1 Weight: {f1_weighted:.4f}")
     print(f"  Kappa    : {kappa:.4f}")
-    print(f"\n  Confusion matrix (rows=true, cols=pred):")
-    for i, cat in enumerate(CATEGORIES):
-        if i < len(cm):
-            print(f"    {cat:10s} {cm[i]}")
+    print(f"  MCC      : {mcc:.4f}")
+    print(f"  Bal Acc  : {bal_acc:.4f}")
 
     # ── Persist artefacts ──────────────────────────────────
     joblib.dump(best_model, os.path.join(MODEL_DIR, "hotspot_model.pkl"))
@@ -218,17 +211,18 @@ def train_models(df: pd.DataFrame):
     with open(os.path.join(MODEL_DIR, "model_metrics.json"), "w") as f:
         json.dump(metrics, f, indent=2)
 
+    if hasattr(best_model, "predict_proba"):
+        y_prob = best_model.predict_proba(X_test)
+    else:
+        y_prob = []
+
     np.savez(
         os.path.join(MODEL_DIR, "test_data.npz"),
-        X_test=X_test, y_test=y_test, y_pred=y_pred,
+        X_test=X_test, y_test=y_clf_test, y_pred=y_pred, y_prob=y_prob
     )
     print(f"\n💾 Saved to: {MODEL_DIR}")
     return best_model, metrics
 
-
-# ═══════════════════════════════════════════════════════════════
-# CLI – runs the full 3-step pipeline
-# ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     from preprocess import preprocess, save_processed
     from feature_engineering import create_grid_features, save_grid_features

@@ -106,7 +106,10 @@ export default function ModelScores() {
   const rec   = (metrics.recall_weighted * 100);
   const f1    = (metrics.f1_weighted * 100);
   const kappa = (metrics.cohen_kappa * 100);
-  const cvF1  = (metrics.cv_f1_score * 100);
+  const cvF1  = (metrics.cv_f1_mean * 100);
+  const f1Macro = (metrics.f1_macro * 100);
+  const balAcc = (metrics.balanced_accuracy * 100);
+  const mcc = (metrics.mcc * 100);
 
   // ── Blind Spot Detector computations ────────────────────────
   const blindSpots = metrics.per_class_metrics
@@ -193,8 +196,8 @@ export default function ModelScores() {
         </div>
         <div className="stat-card">
           <div className="stat-content">
-            <div className="stat-value">{prec.toFixed(1)}%</div>
-            <div className="stat-label">Precision</div>
+            <div className="stat-value">{balAcc.toFixed(1)}%</div>
+            <div className="stat-label">Bal. Accuracy</div>
           </div>
           <div className="stat-icon-wrapper" style={{ background: 'var(--status-moderate-glow)', color: 'var(--status-moderate)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

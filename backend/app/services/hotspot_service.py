@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import MinMaxScaler
 from dotenv import load_dotenv
+from app.utils.ccs_helper import get_ccs_category
 
 load_dotenv()
 
@@ -200,16 +201,7 @@ class HotspotService:
             + 0.10 * agg["mn"]
         ).mul(10).round(2)
 
-        def _cat(s):
-            if s >= 4.5:
-                return "CRITICAL"
-            if s >= 3.0:
-                return "HIGH"
-            if s >= 1.5:
-                return "MODERATE"
-            return "LOW"
-
-        agg["CCS_category"] = agg["CCS"].apply(_cat)
+        agg["CCS_category"] = agg["CCS"].apply(get_ccs_category)
 
         def _arch(row):
             jn = str(row["top_junction"]).upper()

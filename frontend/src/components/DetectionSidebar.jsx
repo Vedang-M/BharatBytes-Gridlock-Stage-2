@@ -3,18 +3,11 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 
-const CCS_COLOR = (score) => {
-  if (score >= 4.5) return '#ef4444';
-  if (score >= 3.0) return '#f97316';
-  if (score >= 1.5) return '#eab308';
+const CCS_COLOR = (category) => {
+  if (category === 'CRITICAL') return '#ef4444';
+  if (category === 'HIGH') return '#f97316';
+  if (category === 'MODERATE') return '#eab308';
   return '#22c55e';
-};
-
-const CCS_CATEGORY = (score) => {
-  if (score >= 4.5) return 'CRITICAL';
-  if (score >= 3.0) return 'HIGH';
-  if (score >= 1.5) return 'MODERATE';
-  return 'LOW';
 };
 
 const VEHICLE_COLORS = {
@@ -51,8 +44,8 @@ export default function DetectionSidebar({
   const r = 52;
   const circ = Math.PI * r;
   const dash = pct * circ;
-  const color = CCS_COLOR(ccsScore);
-  const cat = ccsCategory || CCS_CATEGORY(ccsScore);
+  const cat = ccsCategory || 'LOW';
+  const color = CCS_COLOR(cat);
 
   // Vehicle chart data
   const chartData = ['CAR', 'MOTORCYCLE', 'BUS', 'TRUCK'].map((v) => ({

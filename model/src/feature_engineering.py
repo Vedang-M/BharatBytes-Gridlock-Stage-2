@@ -18,18 +18,13 @@ CELL_SIZE = 0.005  # ≈ 500 m at this latitude
 
 # ── Feature columns used by the ML model ───────────────────────
 FEATURE_COLS = [
-    "violation_count",
-    "peak_pct",
-    "avg_severity",
-    "max_severity",
-    "avg_veh_weight",
-    "main_road_pct",
-    "junction_pct",
     "weekend_pct",
     "unique_hours",
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
+    "lat_center",
+    "lon_center"
 ]
 
 
@@ -116,16 +111,12 @@ def create_grid_features(df: pd.DataFrame = None):
         + 0.10 * cells["mn"]
     ).mul(10).round(2)
 
-    def _ccs_cat(s):
-        if s >= 4.5:
-            return "CRITICAL"
-        if s >= 3.0:
-            return "HIGH"
-        if s >= 1.5:
-            return "MODERATE"
-        return "LOW"
-
-    cells["CCS_category"] = cells["CCS"].apply(_ccs_cat)
+    cells["CCS_category"] = pd.qcut(
+        cells["CCS"],
+        q=4,
+        labels=["LOW", "MODERATE", "HIGH", "CRITICAL"],
+        duplicates="drop"
+    )
 
     print(f"  CCS distribution: {cells['CCS_category'].value_counts().to_dict()}")
     return cells, FEATURE_COLS
