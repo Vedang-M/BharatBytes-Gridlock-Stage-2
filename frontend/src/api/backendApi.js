@@ -42,8 +42,10 @@ export const postPrediction = (features) =>
 export const getModelMetrics = () =>
   api.get("/predictions/model-metrics").then((r) => r.data);
 
-export const getForecast = () =>
-  api.get("/predictions/forecast").then((r) => r.data);
+export const getForecast = (zoneId = null) => {
+  const params = zoneId !== null && zoneId !== "ALL" ? { zone_id: zoneId } : {};
+  return api.get("/predictions/forecast", { params }).then((r) => r.data);
+};
 
 // ── Analytics ─────────────────────────────────────────────────
 export const getTemporalData = () =>

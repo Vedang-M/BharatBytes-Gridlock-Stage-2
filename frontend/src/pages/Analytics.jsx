@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   AreaChart, Area, CartesianGrid,
 } from 'recharts';
-import { getTemporalData, getDailyTrend, getForecast, getSchedule } from '../api/backendApi';
+import { getTemporalData, getDailyTrend, getForecast, getSchedule, getHotspots } from '../api/backendApi';
 import WhatIfZonePlanner from '../components/WhatIfZonePlanner';
 
 const HOUR_COLOR = (h) => ((h >= 7 && h <= 11) || (h >= 17 && h <= 21)) ? 'url(#peakBarGradient)' : 'url(#normalBarGradient)';
@@ -14,22 +14,28 @@ export default function Analytics() {
   const [trend, setTrend] = useState([]);
   const [forecast, setForecast] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [zones, setZones] = useState([]);
+  const [selectedZone, setSelectedZone] = useState("ALL");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       getTemporalData().catch(() => null),
       getDailyTrend().catch(() => []),
-      getForecast().catch(() => []),
       getSchedule(8).catch(() => []),
-    ]).then(([t, tr, fc, sc]) => {
+      getHotspots(50).catch(() => [])
+    ]).then(([t, tr, sc, hz]) => {
       setTemporal(t);
       setTrend(tr);
-      setForecast(fc);
       setSchedule(sc);
+      setZones(hz);
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    getForecast(selectedZone).then(setForecast).catch(() => setForecast([]));
+  }, [selectedZone]);
 
   if (loading) {
     return (
@@ -171,12 +177,37 @@ export default function Analytics() {
 
       <div className="grid-2" style={{ marginBottom: 24 }}>
         <div className="flat-card">
-          <div className="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-            </svg>
-            Next 7-Day Forecast
+          <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+              </svg>
+              Next 7-Day Forecast
+            </div>
+            <select
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
+              style={{
+                padding: '6px 30px 6px 10px',
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer',
+                maxWidth: '250px',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <option value="ALL">City-Wide Top Zones</option>
+              {zones.map(z => (
+                <option key={z.cluster} value={z.cluster}>{z.top_junction}</option>
+              ))}
+            </select>
           </div>
           {forecast.length > 0 ? (
             <div className="table-responsive">

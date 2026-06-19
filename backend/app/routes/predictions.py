@@ -1,6 +1,7 @@
 """Prediction API routes."""
 from fastapi import APIRouter, Request, HTTPException
 from app.schemas.prediction import PredictionRequest
+from typing import Optional
 
 router = APIRouter()
 
@@ -24,10 +25,10 @@ def model_metrics(request: Request):
 
 
 @router.get("/forecast")
-def forecast(request: Request):
+def forecast(request: Request, zone_id: Optional[int] = None):
     hs = request.app.state.hotspot_service
     ans = request.app.state.analytics_service
-    return ans.get_forecast(hs.clusters)
+    return ans.get_forecast(hs.clusters, zone_id=zone_id)
 
 
 @router.post("/reload")

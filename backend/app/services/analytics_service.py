@@ -90,12 +90,15 @@ class AnalyticsService:
         return veh.to_dict(orient="records")
 
     # ── 7-day forecast ─────────────────────────────────────
-    def get_forecast(self, clusters: pd.DataFrame, n_days: int = 7) -> list[dict]:
+    def get_forecast(self, clusters: pd.DataFrame, n_days: int = 7, zone_id: int = None) -> list[dict]:
         dow_order = [
             "Monday", "Tuesday", "Wednesday", "Thursday",
             "Friday", "Saturday", "Sunday",
         ]
         df_c = self.df[self.df.get("cluster", pd.Series(dtype=int)) >= 0] if "cluster" in self.df.columns else self.df
+        if zone_id is not None:
+            df_c = df_c[df_c["cluster"] == zone_id]
+        
         dow_hour = (
             df_c.groupby(["dow_ist", "hour_ist"])
             .size()

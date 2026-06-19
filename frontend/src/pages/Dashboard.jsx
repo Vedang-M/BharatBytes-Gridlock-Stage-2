@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [hotspots, setHotspots] = useState([]);
   const [heatmap, setHeatmap] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [selectedHotspotIndex, setSelectedHotspotIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const pieChartRef = useRef(null);
@@ -65,7 +66,7 @@ export default function Dashboard() {
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value); // Sort so largest slices are first
 
-  const top = hotspots[0];
+  const top = hotspots[selectedHotspotIndex] || hotspots[0];
   const radarData = top ? [
     { metric: 'Density', value: Math.min((top.violations / 500) * 100, 100) },
     { metric: 'Peak %', value: top.peak_pct },
@@ -241,13 +242,39 @@ export default function Dashboard() {
         </div>
 
         <div className="flat-card">
-          <div className="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-              <path d="M2 12h20"></path>
-            </svg>
-            #1 Hotspot Profile
+          <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                <path d="M2 12h20"></path>
+              </svg>
+              #{selectedHotspotIndex + 1} Hotspot Profile
+            </div>
+            {hotspots.length > 0 && (
+              <select
+                value={selectedHotspotIndex}
+                onChange={(e) => setSelectedHotspotIndex(Number(e.target.value))}
+                style={{
+                  padding: '6px 30px 6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  maxWidth: '250px',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {hotspots.map((h, i) => (
+                  <option key={i} value={i}>{h.top_junction}</option>
+                ))}
+              </select>
+            )}
           </div>
           {top && (
             <>
