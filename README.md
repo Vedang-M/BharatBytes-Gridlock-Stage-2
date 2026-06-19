@@ -13,9 +13,20 @@ ParkIQ is a state-of-the-art, AI-powered intelligence platform designed to analy
 *   **Congestion Cost Score (CCS)** – Calculates a custom traffic severity metric (`0` to `10`) for each hotspot using 6 weighted components (violation count, temporal density, average vehicle weight, etc.).
 *   **ML-Powered Predictions** – A trained machine learning classifier (Random Forest / Gradient Boosting) predicts spatial congestion severity.
 *   **7-Day Violation Risk Forecast** – Employs pattern-based historical analysis to forecast peak violation hours and risk levels.
-*   **ROI & Economic Calculator** – Quantifies enforcement economic value and patrol yield based on the NITI Aayog gridlock framework.
+*   **Dynamic Enforcement Opportunity Cost** – Calculates the real-time daily economic loss caused by unpatrolled high-risk zones and predicts recoverable value.
+*   **City-Wide CCS Distribution Analytics** – Analyzes all identified zones directly via the backend API to provide a comprehensive, unbiased view of congestion severity proportional to the entire city.
+*   **Global Glossary Modal** – Centralized, fully searchable dictionary providing simplified, formal definitions for 30+ complex technical metrics across all modules.
 *   **AI Copilot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Gemini and Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
 *   **Interactive Live Map** – Visualizes hotspot clusters, violation heatmaps, and police patrol routing in real-time.
+
+---
+
+## 🚀 Business Impact & Value Proposition
+
+*   **Maximized Resource Allocation**: By routing officers strictly to high-density, peak-hour clusters rather than random beats, the platform multiplies the effectiveness of existing manpower.
+*   **Revenue Recovery**: The Dynamic Opportunity Cost engine tracks the financial leakage from unpatrolled hotspots, directly tying enforcement strategies to recoverable city revenue.
+*   **Reduced Urban Gridlock**: Prioritizing critical chokepoints (like Main Road Obstructions and Metro Spillover) directly alleviates secondary traffic jams caused by illegal parking.
+*   **Data-Driven Policy Making**: Gives city planners empirical evidence on where to install physical barricades, revise parking fees, or construct multi-level parking facilities.
 
 ---
 
@@ -201,13 +212,20 @@ The backend is fully capable of running predictions by importing files directly 
 
 ---
 
-## 📊 ML Model Diagnostics
+## 🧠 ML Model Strategy & Pipeline
 
-The model divides coordinates into ~500m grid cells and extracts 12 spatial-temporal features.
-Key model performance statistics are displayed dynamically on the **Model Diagnostics** tab in the dashboard.
+To ensure the system generalizes across Bengaluru without overfitting to specific coordinates, we implemented a sophisticated machine learning pipeline:
+
+*   **Algorithm Architecture**: A robust Stacking Ensemble combining CatBoost, XGBoost, and LightGBM with a Logistic Regression meta-learner, moving beyond basic Random Forest implementations.
+*   **Hyperparameter Optimization**: Tuned via Optuna Bayesian Optimization over 20 trials, specifically targeting strict regularization to prevent data leakage.
+*   **Advanced Feature Engineering**: Replaced raw geographic coordinates with 12 computed spatial-temporal interaction features (e.g., `traffic_density_index`, `peak_severity_risk`).
+*   **Spatial Abstraction**: Unsupervised K-Means clustering applied prior to training to eliminate geographic memorization and ensure true pattern recognition.
+*   **Validation**: Evaluated using 5-Fold Stratified Cross-Validation to guarantee high reliability for police deployment.
+
+Key model performance statistics (Cross-Val F1, Balanced Accuracy, Precision/Recall) are displayed dynamically on the **Model Performance** tab in the dashboard.
 
 Trained model artifacts are stored under `model/saved_models/`:
-*   `classifier.joblib` – Saved RandomForest/GradientBoosting model.
+*   `classifier.joblib` – Saved Ensemble model.
 *   `scaler.joblib` – Fitted StandardScaler.
 *   `encoder.joblib` – Fitted LabelEncoder for target classes.
 *   `model_metrics.json` – Diagnostic summaries (Accuracy, F1, Precision, Cohen's Kappa, etc.).
