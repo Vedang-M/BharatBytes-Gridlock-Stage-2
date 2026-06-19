@@ -31,8 +31,7 @@ export default function StatsCard({ value, label }) {
       case "Daily ROI (Top 10)":
         return (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" stroke="none" fill="currentColor" fontSize="26" fontWeight="bold" fontFamily="sans-serif">₹</text>
           </svg>
         );
       case "Peak-Hour Share":
