@@ -1,77 +1,119 @@
-# ParkIQ – Parking-Induced Congestion Intelligence Platform
+# ParkIQ – Enterprise Intelligent Transportation System (ITS)
 
 > **GridLock Hackathon · Stage 2 · Problem Statement 1**  
 > **Built for Bengaluru Traffic Police (BTP)**
 
-ParkIQ is a state-of-the-art, AI-powered intelligence platform designed to analyze, predict, and optimize parking violation enforcement in Bengaluru. By processing 298,450+ parking violation records, the platform identifies high-density congestion hotspots, predicts violation risk levels using machine learning, and recommends optimized patrol schedules for BTP officers.
+ParkIQ is an enterprise-grade, venture-ready Intelligent Transportation System (ITS) designed to autonomously detect, quantify, and mitigate parking-induced congestion. Engineered for the Bengaluru Traffic Police (BTP), ParkIQ processes over 298,450 spatial-temporal violation records and integrates real-time CCTV edge analytics to transform reactive patrols into dynamic, data-driven enforcement operations.
 
 ---
 
-## ✨ Features
+## 🏗️ Core Architecture & Data Pipelines
+
+ParkIQ operates as a high-throughput, decoupled microservices architecture. 
+
+```mermaid
+graph TD
+    subgraph Data Ingestion Layer
+        CSV[Raw CSV Spatial-Temporal Logs]
+        CCTV[Live Video Feed - traffic.mp4]
+    end
+
+    subgraph Processing Engine
+        Spatial[Spatial Gating & Feature Engine<br/>500m Grid Matrix + DBSCAN]
+        YOLO[YOLOv8 Stationary Object Tracking<br/>150-300 Frame Temporal Buffer]
+    end
+
+    subgraph ML & Inference Stacking Layer
+        Stack[Stacking Ensemble Classifier<br/>CatBoost + XGBoost + LightGBM]
+        Optuna[Optuna Bayesian Optimization]
+    end
+
+    subgraph Core Business Services
+        Hotspot[hotspot_service.py<br/>DBSCAN Clustering]
+        Video[video_detection_service.py<br/>Traffic Signal Contextual Filter]
+        Analytics[analytics_service.py<br/>BPR Congestion Formula Engine]
+    end
+
+    subgraph Presentation Layer
+        React[React/Vite Dashboard<br/>Dashboard.jsx, WhatIfZonePlanner.jsx]
+        AI[Sarvam AI Assistant<br/>Multi-lingual NLP/Audio]
+        PDF[Automated PDF Reporting]
+    end
+
+    %% Data Flow
+    CSV --> Spatial
+    CCTV --> YOLO
+    
+    Spatial --> Hotspot
+    Hotspot --> Stack
+    Optuna --> Stack
+    
+    YOLO --> Video
+    Stack --> Analytics
+    Hotspot --> Analytics
+    
+    Analytics --> React
+    Video --> React
+    Analytics --> AI
+    React --> PDF
+```
+
+---
+
+## 🧮 Mathematical & ML Framework
+
+### Defensible Traffic Modeling: The BPR Congestion Function
+Unlike empirical or arbitrary traffic heuristics, ParkIQ quantifies the **Congestion Cost Score (CCS)** using a modified formulation of the Bureau of Public Roads (BPR) congestion function:
+
+$$T = T_0 \left[1 + \alpha \left(\frac{V}{C}\right)^\beta\right]$$
+
+**Where:**
+*   $T$: Predicted travel time under congested conditions.
+*   $T_0$: Free-flow travel time.
+*   $V$: Real-time traffic volume.
+*   $C$: Effective lane capacity.
+*   $\alpha, \beta$: Empirically calibrated impedance parameters.
+
+**The Economic Impact Engine:**
+When illegal parking occurs, it effectively reduces the functional lane width ($W_p$). This geometric constraint dynamically drops the maximum capacity ($C_0 \to C_{restricted}$), causing an immediate escalation in the volume-to-capacity ratio ($V/C$). ParkIQ calculates this resulting delay ($\Delta T$) and converts it into direct economic loss (Enforcement Opportunity Cost) by modeling the Value of Time (VoT) and excess fuel burn across a distributed vehicle-type matrix (HGV, LGV, Two-Wheelers).
+
+### Spatial ML Pipeline & Stacking Ensemble
+ParkIQ does not rely on basic Random Forests. Our core intelligence layer is powered by a rigorously optimized **StackingClassifier**, combining:
+1.  **CatBoost** 
+2.  **XGBoost** 
+3.  **LightGBM** 
+
+The ensemble is heavily tuned via **Optuna** Bayesian optimization to ensure maximum generalization across Bengaluru's diverse urban grid. 
+
+**Spatial Framework:**
+We implement a rigid **500m grid-cell matrix**. Feature engineering incorporates **Moore neighborhood matrices** and computed spatial lag features to understand localized density contexts. This grid framework is strictly reconciled with our base **DBSCAN pre-clustering layer**, ensuring that AI predictions correspond accurately to actionable geographic hotspots. 
+
+Trained model artifacts are strictly versioned (e.g., `hotspot_model.pkl`, `scaler.pkl`) and deployed via our dedicated ML Inference API.
+
+---
+
+## 📷 Edge-Case Computer Vision Rigor
+
+ParkIQ's real-time video analytics pipeline (`video_detection_service.py`) utilizes a highly optimized **YOLOv8** network to process live CCTV feeds.
+
+We go far beyond naive bounding box detection:
+*   **Robust State-Vector Tracking**: Every vehicle is assigned a continuous state-vector, mapping its trajectory, velocity, and spatial footprint across the visual plane.
+*   **Long-Term Temporal Buffers (150–300 Frames)**: To eliminate false positives, the system maintains deep temporal memory. A vehicle must remain strictly stationary across long temporal horizons (adjusted for FPS) to trigger an anomaly.
+*   **Traffic Signal Contextual Filter**: This proprietary logic layer isolates authentic parking anomalies from standard urban gridlock. By analyzing the collective motion vectors of surrounding vehicles, the system understands when a car is stopped at a red light (gridlock) versus when it is illegally parked obstructing a flowing lane.
+
+---
+
+## ✨ Enterprise Features
 
 *   **DBSCAN Spatial Clustering** – Groups raw GPS coordinates of illegal parking events into high-density geographic hotspots.
-*   **Congestion Cost Score (CCS)** – Calculates a custom traffic severity metric (`0` to `10`) for each hotspot using 6 weighted components (violation count, temporal density, average vehicle weight, etc.).
-*   **ML-Powered Predictions** – A trained machine learning classifier (Random Forest / Gradient Boosting) predicts spatial congestion severity.
-*   **7-Day Violation Risk Forecast** – Employs pattern-based historical analysis to forecast peak violation hours and risk levels.
 *   **Dynamic Enforcement Opportunity Cost** – Calculates the real-time daily economic loss caused by unpatrolled high-risk zones, presented in a premium glassmorphic UI with glowing pulse animations and dynamic shimmering progress bars.
+*   **Interactive What-If Zone Planner** – Advanced sandbox (`WhatIfZonePlanner.jsx`) allowing city planners to simulate traffic improvements and ROI if specific hotspots are cleared.
+*   **AI Chatbot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
 *   **City-Wide CCS Distribution Analytics** – Analyzes all identified zones directly via the backend API to provide a comprehensive, unbiased view of congestion severity proportional to the entire city.
 *   **Interactive Hotspot Profiles** – Dynamic, selectable widgets that render localized zone profiles and chart analytics instantly on demand.
-*   **Global Glossary Modal** – Centralized, fully searchable dictionary providing simplified, formal definitions for complex UI blocks (e.g., *Enforcement Opportunity Cost*, *Model Blind Spot Detector*) and 30+ technical metrics across all modules.
 *   **Model Diagnostics UI** – Structured visual sections detailing model confidence, test sample verification, and blind spot identification for full algorithmic transparency.
-*   **AI Chatbot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
 *   **Interactive Live Map** – Visualizes hotspot clusters, violation heatmaps, and police patrol routing in real-time.
-
----
-
-## 🚀 Business Impact & Value Proposition
-
-*   **Maximized Resource Allocation**: By routing officers strictly to high-density, peak-hour clusters rather than random beats, the platform multiplies the effectiveness of existing manpower.
-*   **Revenue Recovery**: The Dynamic Opportunity Cost engine tracks the financial leakage from unpatrolled hotspots, directly tying enforcement strategies to recoverable city revenue.
-*   **Reduced Urban Gridlock**: Prioritizing critical chokepoints (like Main Road Obstructions and Metro Spillover) directly alleviates secondary traffic jams caused by illegal parking.
-*   **Data-Driven Policy Making**: Gives city planners empirical evidence on where to install physical barricades, revise parking fees, or construct multi-level parking facilities.
-
----
-
-## 🏗️ System Architecture
-
-ParkIQ operates as a multi-tier service consisting of a React frontend, a FastAPI controller backend, and a standalone ML inference API.
-
-```
-                  ┌──────────────────────────────────────────────┐
-                  │            Frontend (React + Vite)           │
-                  │             http://localhost:5173            │
-                  │  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-                  │  │ Dashboard │  │ Hotspots │  │ Analytics│    │
-                  │  └────┬─────┘  └────┬─────┘  └────┬─────┘    │
-                  │       └──────────────┼─────────────┘          │
-                  │                      │ Axios HTTP             │
-                  └──────────────────────┼────────────────────────┘
-                                         ▼
-                  ┌──────────────────────────────────────────────┐
-                  │            Backend (FastAPI)                 │
-                  │             http://localhost:8000            │
-                  │  ┌───────────┐ ┌──────────────┐ ┌──────────┐ │
-                  │  │ /hotspots │ │ /predictions │ │ /chat    │ │
-                  │  └─────┬─────┘ └──────┬───────┘ └────┬─────┘ │
-                  │        │              │              │       │
-                  │  ┌─────┴─────┐ ┌──────┴───────┐ ┌────┴─────┐ │
-                  │  │ HotspotSvc│ │PredictionSvc │ │ AI Svc   │ │
-                  │  │ (DBSCAN)  │ │  (ML Model)  │ │ (LLM/STT)│ │
-                  │  └───────────┘ └──────────────┘ └──────────┘ │
-                  └──────────────────────┬───────────────────────┘
-                                         ▼ (Optional HTTP)
-                  ┌──────────────────────────────────────────────┐
-                  │            Model Service (FastAPI)           │
-                  │             http://localhost:8001            │
-                  │  ┌────────────────────────────────────────┐  │
-                  │  │   Trained Classifier (RF / GBT)        │  │
-                  │  └────────────────────────────────────────┘  │
-                  └──────────────────────────────────────────────┘
-```
-
-*   **Frontend (Port 5173)**: Built using React, Vite, and Tailwind/Vanilla CSS, featuring Mappls (MapmyIndia) interactive maps and responsive analytics.
-*   **Backend API (Port 8000)**: Serves as the orchestrator, loading the raw CSV data, running DBSCAN clustering, computing CCS metrics, handling AI Assistant chat/audio endpoints, and calling model prediction routines.
-*   **Model API (Port 8001)**: A microservice wrapping the scikit-learn models, providing prediction, health-check, and hot-reload hooks.
+*   **7-Day Violation Risk Forecast** – Employs pattern-based historical analysis to forecast peak violation hours and risk levels.
 
 ---
 
@@ -151,7 +193,7 @@ Before starting the server, you must preprocess the raw dataset and train the cl
    cd src
    python train.py
    ```
-   *Note: This script will clean the dataset, engineer spatial features based on 500m grid cells, apply SMOTE class balancing, and train a Random Forest and Gradient Boosting classifier.*
+   *Note: This script will clean the dataset, engineer spatial features based on 500m grid cells, apply SMOTE class balancing, and train the Stacking Ensemble classifier.*
 4. Run the evaluation script (optional):
    ```bash
    python evaluate.py
@@ -214,26 +256,6 @@ The backend is fully capable of running predictions by importing files directly 
 
 ---
 
-## 🧠 ML Model Strategy & Pipeline
-
-To ensure the system generalizes across Bengaluru without overfitting to specific coordinates, we implemented a sophisticated machine learning pipeline:
-
-*   **Algorithm Architecture**: A robust Stacking Ensemble combining CatBoost, XGBoost, and LightGBM with a Logistic Regression meta-learner, moving beyond basic Random Forest implementations.
-*   **Hyperparameter Optimization**: Tuned via Optuna Bayesian Optimization over 20 trials, specifically targeting strict regularization to prevent data leakage.
-*   **Advanced Feature Engineering**: Replaced raw geographic coordinates with 12 computed spatial-temporal interaction features (e.g., `traffic_density_index`, `peak_severity_risk`).
-*   **Spatial Abstraction**: Unsupervised K-Means clustering applied prior to training to eliminate geographic memorization and ensure true pattern recognition.
-*   **Validation**: Evaluated using 5-Fold Stratified Cross-Validation to guarantee high reliability for police deployment.
-
-Key model performance statistics (Cross-Val F1, Balanced Accuracy, Precision/Recall) are displayed dynamically on the **Model Performance** tab in the dashboard.
-
-Trained model artifacts are stored under `model/saved_models/`:
-*   `classifier.joblib` – Saved Ensemble model.
-*   `scaler.joblib` – Fitted StandardScaler.
-*   `encoder.joblib` – Fitted LabelEncoder for target classes.
-*   `model_metrics.json` – Diagnostic summaries (Accuracy, F1, Precision, Cohen's Kappa, etc.).
-
----
-
 ## 📁 Directory Structure
 
 ```
@@ -247,15 +269,15 @@ Trained model artifacts are stored under `model/saved_models/`:
 ├── frontend/                 # React + Vite Client Dashboard
 │   ├── src/
 │   │   ├── api/              # Axios interface to REST API
-│   │   ├── pages/            # View components (Dashboard, Hotspots, Diagnostics)
+│   │   ├── pages/            # View components (Dashboard, Hotspots, Diagnostics, WhatIfZonePlanner)
 │   │   └── components/       # Common visual elements (Sidebar, Charts, AI Assistant)
 │   ├── package.json          # Node dependencies and build scripts
 │   └── .env                  # Map Token
 ├── model/                    # Python ML Training Pipeline & Model API
 │   ├── api/                  # Standalone FastAPI model prediction service
 │   ├── src/                  # Code for training, evaluation, and inference
-│   ├── saved_models/         # Serialized classifiers, scalers, and metric files
-│   └── requirements.txt      # ML dependencies (sklearn, imblearn, pandas)
+│   ├── saved_models/         # Serialized classifiers (hotspot_model.pkl), scalers, and metric files
+│   └── requirements.txt      # ML dependencies (sklearn, imblearn, pandas, optuna)
 ├── docs/                     # Platform architecture and dataset specs
 ├── docker-compose.yml        # Multi-container local orchestration script
 └── LICENSE                   # Project license file
