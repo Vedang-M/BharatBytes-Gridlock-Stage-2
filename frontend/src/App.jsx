@@ -6,6 +6,7 @@ import Analytics from './pages/Analytics';
 import ModelScores from './pages/ModelScores';
 import LiveFeed from './pages/LiveFeed';
 import AssistantWidget from './components/AssistantWidget';
+import Footer from './components/Footer';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/live" element={<LiveFeed />} />
       </Routes>
       <AssistantWidget />
+      <Footer />
     </BrowserRouter>
   );
 }
