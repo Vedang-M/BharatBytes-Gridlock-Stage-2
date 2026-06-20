@@ -18,7 +18,7 @@ ParkIQ is a state-of-the-art, AI-powered intelligence platform designed to analy
 *   **Interactive Hotspot Profiles** – Dynamic, selectable widgets that render localized zone profiles and chart analytics instantly on demand.
 *   **Global Glossary Modal** – Centralized, fully searchable dictionary providing simplified, formal definitions for complex UI blocks (e.g., *Enforcement Opportunity Cost*, *Model Blind Spot Detector*) and 30+ technical metrics across all modules.
 *   **Model Diagnostics UI** – Structured visual sections detailing model confidence, test sample verification, and blind spot identification for full algorithmic transparency.
-*   **AI Copilot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Gemini and Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
+*   **AI Chatbot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
 *   **Interactive Live Map** – Visualizes hotspot clusters, violation heatmaps, and police patrol routing in real-time.
 
 ---
