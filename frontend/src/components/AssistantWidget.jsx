@@ -246,7 +246,7 @@ export default function AssistantWidget() {
         onClick={() => setIsOpen((o) => !o)}
         title="ParkIQ Copilot"
         style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          position: 'fixed', bottom: 56, right: 24, zIndex: 9999,
           width: 56, height: 56, borderRadius: '50%',
           background: audioPlaying ? '#16a34a' : 'var(--accent)',
           color: '#fff', border: 'none',
@@ -268,7 +268,7 @@ export default function AssistantWidget() {
       {/* Chat Window */}
       {isOpen && (
         <div style={{
-          position: 'fixed', bottom: 90, right: 24, zIndex: 9998,
+          position: 'fixed', bottom: 130, right: 24, zIndex: 9998,
           width: 365, height: 545,
           display: 'flex', flexDirection: 'column',
           background: 'var(--bg-card)',
