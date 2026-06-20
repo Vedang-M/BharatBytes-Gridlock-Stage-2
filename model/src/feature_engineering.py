@@ -15,7 +15,7 @@ PROCESSED_DIR = os.path.join(PROJECT_ROOT, "model", "data", "processed")
 # ── Grid parameters ────────────────────────────────────────────
 LAT_MIN, LAT_MAX = 12.70, 13.20
 LON_MIN, LON_MAX = 77.40, 77.80
-CELL_SIZE = 0.005  # ≈ 500 m at this latitude
+CELL_SIZE = 0.0025  # ≈ 250 m at this latitude
 
 # ── Feature columns used by the ML model ───────────────────────
 FEATURE_COLS = [
@@ -24,9 +24,14 @@ FEATURE_COLS = [
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
-    "zone_cluster_id",
-    "traffic_density_index",
-    "peak_severity_risk"
+    "peak_pct",
+    "main_road_pct",
+    "junction_pct",
+    "sev_25",
+    "sev_75",
+    "veh_25",
+    "veh_75",
+    "lag_ccs"
 ]
 
 
@@ -34,6 +39,12 @@ def _entropy(series: pd.Series) -> float:
     """Shannon entropy of a categorical series (bits)."""
     probs = series.value_counts(normalize=True)
     return float(-np.sum(probs * np.log2(probs + 1e-10)))
+
+def _q25(x: pd.Series) -> float:
+    return float(x.quantile(0.25))
+
+def _q75(x: pd.Series) -> float:
+    return float(x.quantile(0.75))
 
 
 def create_grid_features(df: pd.DataFrame = None):
@@ -71,8 +82,12 @@ def create_grid_features(df: pd.DataFrame = None):
             avg_severity=("severity_score", "mean"),
             max_severity=("severity_score", "max"),
             std_severity=("severity_score", "std"),
+            sev_25=("severity_score", _q25),
+            sev_75=("severity_score", _q75),
             avg_veh_weight=("veh_weight", "mean"),
             std_veh_weight=("veh_weight", "std"),
+            veh_25=("veh_weight", _q25),
+            veh_75=("veh_weight", _q75),
             main_road_pct=("is_main_road", "mean"),
             junction_pct=("at_junction", "mean"),
             weekend_pct=("is_weekend", "mean"),

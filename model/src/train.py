@@ -33,18 +33,7 @@ MODEL_DIR = os.path.join(PROJECT_ROOT, "model", "saved_models")
 
 # ensure sibling module imports work when run as script
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-FEATURE_COLS = [
-    "weekend_pct",
-    "unique_hours",
-    "n_violations_avg",
-    "unique_vehicle_types",
-    "temporal_entropy",
-    "peak_pct",
-    "main_road_pct",
-    "junction_pct",
-    "lag_ccs"
-]
+from feature_engineering import FEATURE_COLS
 CATEGORIES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 
 def train_models(df: pd.DataFrame):

@@ -120,58 +120,70 @@ class HotspotService:
         print(f"  Loaded {len(df):,} violations")
         return df
 
-    # ── DBSCAN + CCS ──────────────────────────────────────
+    # ── Grid Generation + Model Inference ──────────────────────────────────────
     def _cluster(
         self, df: pd.DataFrame, eps_m: int = 150, min_samples: int = 30
     ):
-        coords = df[["latitude", "longitude"]].values
-        eps_rad = eps_m / 6_371_000
-        labels = DBSCAN(
-            eps=eps_rad,
-            min_samples=min_samples,
-            algorithm="ball_tree",
-            metric="haversine",
-            n_jobs=1,
-        ).fit_predict(np.radians(coords))
+        import sys
+        model_src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "model", "src"))
+        if model_src_path not in sys.path:
+            sys.path.insert(0, model_src_path)
+            
+        # pyrefly: ignore [missing-import]
+        from feature_engineering import create_grid_features
+        # pyrefly: ignore [missing-import]
+        from predict import HotspotPredictor
 
-        df = df.copy()
-        df["cluster"] = labels
-        valid = df[df["cluster"] >= 0]
-
-        agg = (
-            valid.groupby("cluster")
-            .agg(
-                lat=("latitude", "mean"),
-                lon=("longitude", "mean"),
-                violations=("latitude", "count"),
-                peak_viol=("is_peak", "sum"),
-                avg_severity=("severity_score", "mean"),
-                avg_veh_wt=("veh_weight", "mean"),
-                main_road=("is_main_road", "mean"),
-                at_junc=("at_junction", "mean"),
-                top_police=(
-                    "police_station",
-                    lambda x: str(x.mode().iloc[0]).title() if len(x) else "Unknown",
-                ),
-                top_junction=(
-                    "junction_name",
-                    lambda x: (
-                        x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)].mode().iloc[0]
-                        if len(x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)]) > 0
-                        else ""
-                    )
-                ),
-            )
-            .reset_index()
-        )
-        top_vtype = (
-            valid.groupby("cluster")["primary_violation"]
-            .agg(lambda x: x.mode().iloc[0] if len(x) else "")
-            .rename("top_vtype")
-        )
-        agg = agg.merge(top_vtype, on="cluster", how="left")
-
-        # Fallback empty top_junction to police station name
+        # 1. Grid features (identical to training)
+        cells, _ = create_grid_features(df)
+        
+        # 2. Get predictions from trained model
+        predictor = HotspotPredictor()
+        predictions = predictor.predict_df(cells)
+        
+        # 3. Use model predictions for CCS
+        if "ccs_score" in predictions.columns:
+            cells["CCS"] = predictions["ccs_score"]
+        cells["CCS_category"] = predictions["category"]
+        
+        # 4. Generate API-required supplementary columns
+        df_clust = df.copy()
+        LAT_MIN, LON_MIN, CELL_SIZE = 12.70, 77.40, 0.0025
+        df_clust["lat_bin"] = ((df_clust["latitude"] - LAT_MIN) / CELL_SIZE).astype(int)
+        df_clust["lon_bin"] = ((df_clust["longitude"] - LON_MIN) / CELL_SIZE).astype(int)
+        df_clust["cell_id"] = df_clust["lat_bin"].astype(str) + "_" + df_clust["lon_bin"].astype(str)
+        
+        cell_ids = df_clust["cell_id"].unique()
+        cell_to_cluster = {cid: i for i, cid in enumerate(cell_ids)}
+        df_clust["cluster"] = df_clust["cell_id"].map(cell_to_cluster)
+        cells["cluster"] = cells["cell_id"].map(cell_to_cluster)
+        
+        valid = df_clust[df_clust["cell_id"].isin(cells["cell_id"])]
+        
+        agg_api = valid.groupby("cell_id").agg(
+            top_police=("police_station", lambda x: str(x.mode().iloc[0]).title() if len(x) else "Unknown"),
+            top_junction=("junction_name", lambda x: (
+                x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)].mode().iloc[0]
+                if len(x[~x.astype(str).str.upper().str.contains("NO JUNCTION|NONE", na=True)]) > 0 else ""
+            ))
+        ).reset_index()
+        
+        top_vtype = valid.groupby("cell_id")["primary_violation"].agg(
+            lambda x: x.mode().iloc[0] if len(x) else ""
+        ).rename("top_vtype")
+        agg_api = agg_api.merge(top_vtype, on="cell_id", how="left")
+        
+        agg = cells.merge(agg_api, on="cell_id", how="left")
+        
+        # Map to legacy schema names for API compatibility
+        agg = agg.rename(columns={
+            "lat_center": "lat",
+            "lon_center": "lon",
+            "violation_count": "violations",
+            "main_road_pct": "main_road",
+            "junction_pct": "at_junc"
+        })
+        
         def _get_junction_name(row):
             jn = str(row["top_junction"]).strip()
             if not jn or jn.upper() in ["", "NO JUNCTION", "NONE"]:
@@ -181,56 +193,30 @@ class HotspotService:
                 return "Unknown Zone"
             return jn.title()
         agg["top_junction"] = agg.apply(_get_junction_name, axis=1)
-
-        agg["peak_pct"] = (agg["peak_viol"] / agg["violations"] * 100).round(1)
-
-        scaler = MinMaxScaler()
-        agg["dn"] = scaler.fit_transform(agg[["violations"]]).flatten()
-        agg["sn"] = (agg["avg_severity"] - 1) / 5
-        agg["wn"] = (agg["avg_veh_wt"] - 1) / 4
-        agg["pn"] = agg["peak_pct"] / 100
-        agg["jn"] = agg["at_junc"]
-        agg["mn"] = agg["main_road"]
-
-        agg["CCS"] = (
-            0.30 * agg["dn"]
-            + 0.20 * agg["sn"]
-            + 0.15 * agg["wn"]
-            + 0.15 * agg["pn"]
-            + 0.10 * agg["jn"]
-            + 0.10 * agg["mn"]
-        ).mul(10).round(2)
-
-        agg["CCS_category"] = agg["CCS"].apply(get_ccs_category)
-
+        
+        agg["peak_pct"] = (agg["peak_pct"] * 100).round(1)
+        
         def _arch(row):
             jn = str(row["top_junction"]).upper()
-            if "METRO" in jn:
-                return "Metro Station Spillover"
-            if row["main_road"] > 0.4:
-                return "Main Road Obstruction"
-            if row["at_junc"] > 0.5:
-                return "Junction Chokepoint"
-            if "MARKET" in jn or "KR" in jn:
-                return "Commercial/Market Overflow"
-            if row["peak_pct"] > 50:
-                return "Peak-Hour Hotspot"
+            if "METRO" in jn: return "Metro Station Spillover"
+            if row["main_road"] > 0.4: return "Main Road Obstruction"
+            if row["at_junc"] > 0.5: return "Junction Chokepoint"
+            if "MARKET" in jn or "KR" in jn: return "Commercial/Market Overflow"
+            if row["peak_pct"] > 50: return "Peak-Hour Hotspot"
             return "Chronic Parking Zone"
 
         agg["archetype"] = agg.apply(_arch, axis=1)
-
-        SESSION_HRS = 2
-        roi_vot = round(
-            AVG_VEHICLES_PER_HOUR * SESSION_HRS * AVG_DELAY_MINUTES / 60 * VALUE_OF_TIME_INR
-        )
-        roi_fuel = round(
-            AVG_VEHICLES_PER_HOUR * SESSION_HRS * AVG_DELAY_MINUTES * FUEL_COST_PER_VEH_MIN
-        )
+        
+        # Constants
+        SESSION_HRS, AVG_VEHICLES_PER_HOUR, AVG_DELAY_MINUTES = 2, 900, 2.5
+        VALUE_OF_TIME_INR, FUEL_COST_PER_VEH_MIN = 95, 4.5
+        roi_vot = round(AVG_VEHICLES_PER_HOUR * SESSION_HRS * AVG_DELAY_MINUTES / 60 * VALUE_OF_TIME_INR)
+        roi_fuel = round(AVG_VEHICLES_PER_HOUR * SESSION_HRS * AVG_DELAY_MINUTES * FUEL_COST_PER_VEH_MIN)
         agg["total_roi_inr"] = roi_vot + roi_fuel
-
+        
         agg = agg.sort_values("CCS", ascending=False).reset_index(drop=True)
-        print(f"  Found {len(agg)} clusters")
-        return df, agg
+        print(f"  Found {len(agg)} predicted hotspot grid cells")
+        return df_clust, agg
 
     # ── Public API ─────────────────────────────────────────
     def get_hotspots(self, top_n: int = 50) -> list[dict]:

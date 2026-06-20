@@ -12,15 +12,7 @@ import joblib
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(PROJECT_ROOT, "model", "saved_models")
 
-FEATURE_COLS = [
-    "weekend_pct",
-    "unique_hours",
-    "n_violations_avg",
-    "unique_vehicle_types",
-    "temporal_entropy",
-    "lat_center",
-    "lon_center"
-]
+from feature_engineering import FEATURE_COLS
 
 
 class HotspotPredictor:
@@ -96,6 +88,37 @@ class HotspotPredictor:
     def predict_batch(self, rows: list[dict]) -> list[dict]:
         """Vectorised prediction for a list of feature dicts."""
         return [self.predict(r) for r in rows]
+
+    def predict_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Vectorised prediction for a DataFrame."""
+        X_df = df.reindex(columns=self.feature_cols, fill_value=0)
+        X_scaled = self.scaler.transform(X_df.values)
+
+        if self.is_regressor:
+            scores = self.model.predict(X_scaled)
+            categories = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
+            actual_categories = categories[-len(self.bins)+1:] if len(self.bins) - 1 < len(categories) else categories
+            cats = pd.cut(scores, bins=self.bins, labels=actual_categories, include_lowest=True)
+            if isinstance(cats, pd.Series):
+                cats = cats.fillna("LOW")
+            else:
+                cats = [c if pd.notna(c) else "LOW" for c in cats]
+            
+            return pd.DataFrame({
+                "category": cats,
+                "confidence": 1.0,
+                "ccs_score": np.round(scores, 2)
+            })
+        else:
+            pred_enc = self.model.predict(X_scaled)
+            probas = self.model.predict_proba(X_scaled)
+            categories = self.le.inverse_transform(pred_enc)
+            confidences = probas.max(axis=1)
+
+            return pd.DataFrame({
+                "category": categories,
+                "confidence": np.round(confidences, 4)
+            })
 
 
 # ── CLI smoke test ─────────────────────────────────────────────

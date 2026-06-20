@@ -31,6 +31,10 @@ FEATURE_COLS = [
     "peak_pct",
     "main_road_pct",
     "junction_pct",
+    "sev_25",
+    "sev_75",
+    "veh_25",
+    "veh_75",
     "lag_ccs"
 ]
 
