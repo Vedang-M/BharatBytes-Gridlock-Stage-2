@@ -59,6 +59,26 @@ ROI calculation with adjustable parameters.
 
 ---
 
+## Assistant & Insights Endpoints
+
+### `POST /api/assistant/chat`
+Conversational AI endpoint powered by LLM.
+
+### `POST /api/assistant/audio`
+Speech-to-Text conversational AI endpoint (Sarvam AI).
+
+### `GET /api/insights/generate`
+Generates automated contextual insights based on current dashboard data.
+
+---
+
+## Video Streaming Endpoints
+
+### `WS /ws/stream`
+WebSocket endpoint for real-time video streaming with YOLOv8-based vehicle detection and violation tracking overlays.
+
+---
+
 ## Model API (Port 8001)
 
 ### `POST /predict`

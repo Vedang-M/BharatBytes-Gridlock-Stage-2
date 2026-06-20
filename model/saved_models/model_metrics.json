@@ -1,19 +1,19 @@
 {
   "model_name": "StackingClassifier",
-  "accuracy": 0.8571,
-  "precision_weighted": 0.8611,
-  "recall_weighted": 0.8571,
-  "f1_weighted": 0.8584,
-  "f1_macro": 0.8584,
-  "balanced_accuracy": 0.8571,
-  "mcc": 0.81,
-  "cohen_kappa": 0.8095,
-  "cv_f1_mean": 0.8701,
+  "accuracy": 0.8695,
+  "precision_weighted": 0.8727,
+  "recall_weighted": 0.8695,
+  "f1_weighted": 0.8705,
+  "f1_macro": 0.8705,
+  "balanced_accuracy": 0.8695,
+  "mcc": 0.8263,
+  "cohen_kappa": 0.8259,
+  "cv_f1_mean": 0.8703,
   "cv_f1_std": 0.0,
   "confusion_matrix": [
     [
-      90,
-      12,
+      91,
+      11,
       0,
       0
     ],
@@ -25,15 +25,15 @@
     ],
     [
       0,
-      11,
-      83,
-      7
+      9,
+      86,
+      6
     ],
     [
       0,
       1,
-      11,
-      89
+      10,
+      90
     ]
   ],
   "categories": [
@@ -44,44 +44,44 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.9375,
-      "recall": 0.8824,
-      "f1": 0.9091,
+      "precision": 0.9381,
+      "recall": 0.8922,
+      "f1": 0.9146,
       "support": 102
     },
     "MODERATE": {
-      "precision": 0.7818,
+      "precision": 0.8037,
       "recall": 0.8431,
-      "f1": 0.8113,
+      "f1": 0.823,
       "support": 102
     },
     "HIGH": {
-      "precision": 0.7981,
-      "recall": 0.8218,
-      "f1": 0.8098,
+      "precision": 0.8113,
+      "recall": 0.8515,
+      "f1": 0.8309,
       "support": 101
     },
     "CRITICAL": {
-      "precision": 0.9271,
-      "recall": 0.8812,
-      "f1": 0.9036,
+      "precision": 0.9375,
+      "recall": 0.8911,
+      "f1": 0.9137,
       "support": 101
     }
   },
   "feature_importance": {
-    "weekend_pct": -0.0084,
-    "unique_hours": -0.0069,
-    "n_violations_avg": 0.0081,
-    "unique_vehicle_types": 0.0015,
-    "temporal_entropy": 0.0032,
-    "peak_pct": 0.3667,
-    "main_road_pct": 0.1138,
-    "junction_pct": 0.2889,
-    "sev_25": 0.0525,
-    "sev_75": 0.0342,
-    "veh_25": 0.0968,
-    "veh_75": 0.0596,
-    "lag_ccs": 0.0153
+    "weekend_pct": 0.0005,
+    "unique_hours": 0.0039,
+    "n_violations_avg": 0.0254,
+    "unique_vehicle_types": 0.0121,
+    "temporal_entropy": 0.0271,
+    "peak_pct": 0.3837,
+    "main_road_pct": 0.1337,
+    "junction_pct": 0.2919,
+    "sev_25": 0.0569,
+    "sev_75": 0.0379,
+    "veh_25": 0.0975,
+    "veh_75": 0.0732,
+    "lag_ccs": 0.0266
   },
   "train_size": 1624,
   "test_size": 406,
