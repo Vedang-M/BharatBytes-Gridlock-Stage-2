@@ -118,14 +118,16 @@ We go far beyond naive bounding box detection:
 
 ## 🛠️ Setup & Installation
 
-ParkIQ is designed for zero-friction deployment. An automated launch script is provided to handle virtual environments, dependency installation, model training (if required), and concurrent service startup.
+ParkIQ provides two ways to launch the platform: an **Automated Zero-Friction Launch (macOS/Linux/WSL)** and a **Manual Step-by-Step Launch (Windows/Cross-Platform)**.
 
-### Prerequisites
-*   **macOS / Linux** (or WSL on Windows)
+### Prerequisites (All Platforms)
 *   **Python 3.10+**
 *   **Node.js 18+** (with `npm`)
+*   **Git**
 
-### 1. Configure Environment Variables
+*(Note: Ensure the dataset `jan to may police violation_anonymized791b166.csv` is present in the root directory prior to launch).*
+
+### 1. Configure Environment Variables (All Platforms)
 Before running the application, configure your `.env` files in both the `backend` and `frontend` directories.
 
 **Backend (`backend/.env`):**
@@ -142,11 +144,11 @@ SARVAM_API_KEY=your_sarvam_api_key_here
 VITE_MAPPLS_TOKEN=your_mappls_token_here
 ```
 
-*(Note: Ensure the dataset `jan to may police violation_anonymized791b166.csv` is present in the root directory prior to launch).*
+---
 
-### 2. Launch ParkIQ (Automated)
+### Option A: Automated Zero-Friction Launch (macOS / Linux / WSL)
 
-Execute the provided shell script from the project root. This script will automatically provision the Python environment, install Node modules, compile the machine learning models (if missing), and start both the FastAPI backend and Vite frontend synchronously.
+An automated launch script is provided to handle virtual environments, dependency installation, model training (if required), and concurrent service startup.
 
 ```bash
 chmod +x run.sh
@@ -161,10 +163,71 @@ To shut down all services gracefully, simply press `Ctrl+C` in the terminal.
 
 ---
 
-### Manual Launch (Alternative)
-If you prefer running services manually in separate terminals:
-1. **Backend:** `cd backend && source ../.venv/bin/activate && pip install -r requirements.txt && python -m app.main`
-2. **Frontend:** `cd frontend && npm install && npm run dev`
+### Option B: Manual Step-by-Step Launch (Windows / Cross-Platform)
+
+If you prefer running services manually or are on a native Windows environment without WSL, follow these steps.
+
+#### Step 1: Train the Machine Learning Model
+Before starting the server, you must preprocess the raw dataset and train the classification model.
+1. Navigate to the `model/` directory:
+   ```bash
+   cd model
+   ```
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the training script:
+   ```bash
+   cd src
+   python train.py
+   ```
+   *Note: This script will clean the dataset, engineer spatial features, create dynamic temporal lags, and train the LightGBM classifier using Optuna.*
+4. Run the evaluation script (optional):
+   ```bash
+   python evaluate.py
+   ```
+
+#### Step 2: Start the Backend Server
+The backend acts as the data engine for the dashboard.
+1. Navigate to the `backend/` directory:
+   ```bash
+   cd ../backend
+   ```
+2. Install python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Start the FastAPI application:
+   ```bash
+   python -m app.main
+   ```
+
+#### Step 3: Start the Model API Service (Optional)
+The backend is fully capable of running predictions by importing files directly from the model package. However, if you prefer running predictions via a standalone microservice:
+1. Navigate to the `model/api/` directory:
+   ```bash
+   cd ../model/api
+   ```
+2. Run the server:
+   ```bash
+   python model_api.py
+   ```
+
+#### Step 4: Start the Frontend App
+1. Navigate to the `frontend/` directory:
+   ```bash
+   cd ../frontend
+   ```
+2. Install NPM packages:
+   ```bash
+   npm install
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+4. Open your web browser and navigate to **[http://localhost:5173](http://localhost:5173)**.
 
 ---
 
