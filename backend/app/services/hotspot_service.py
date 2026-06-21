@@ -66,6 +66,14 @@ class HotspotService:
             drop_cols = ["created_datetime", "created_datetime_ist", "vtype_list", "violation_type"]
             self.df_clust.drop(columns=[c for c in drop_cols if c in self.df_clust.columns], inplace=True)
             
+            # Downcast to save massive amounts of RAM
+            for col in self.df_clust.select_dtypes(include=['float64']).columns:
+                self.df_clust[col] = self.df_clust[col].astype('float32')
+            for col in self.df_clust.select_dtypes(include=['int64']).columns:
+                self.df_clust[col] = pd.to_numeric(self.df_clust[col], downcast='integer')
+            for col in self.df_clust.select_dtypes(include=['object']).columns:
+                self.df_clust[col] = self.df_clust[col].astype('category')
+            
             print(f"[HotspotService] Saving cache to {cache_path}")
             import pickle
             with open(cache_path, "wb") as f:
