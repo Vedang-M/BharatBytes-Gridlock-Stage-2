@@ -129,140 +129,53 @@ We go far beyond naive bounding box detection:
 
 ## 🛠️ Setup & Installation
 
-Follow these steps to set up and run the entire ParkIQ stack locally.
+ParkIQ is designed for zero-friction deployment. An automated launch script is provided to handle virtual environments, dependency installation, model training (if required), and concurrent service startup.
 
 ### Prerequisites
+*   **macOS / Linux** (or WSL on Windows)
+*   **Python 3.10+**
+*   **Node.js 18+** (with `npm`)
 
-Ensure you have the following installed on your machine:
-*   **Python 3.10 or higher**
-*   **Node.js 18 or higher** (including `npm`)
-*   **Git**
+### 1. Configure Environment Variables
+Before running the application, configure your `.env` files in both the `backend` and `frontend` directories.
 
----
-
-### Step 1: Data Verification
-
-ParkIQ processes a large dataset containing anonymized violation logs.
-1. Locate the file `jan to may police violation_anonymized791b166.csv` in the root directory.
-2. If it is still zipped, extract `jan to may police violation_anonymized791b166.csv.zip` into the root directory.
-
----
-
-### Step 2: Configure Environment Variables
-
-Both the backend and frontend rely on environment variables to access API endpoints and services.
-
-#### Backend Configuration
-Navigate to the `backend/` directory and check/create a `.env` file:
-```bash
-cd backend
-```
-Create a `.env` file containing:
+**Backend (`backend/.env`):**
 ```env
-# Path to the primary raw dataset (relative or absolute)
 CSV_PATH=../jan to may police violation_anonymized791b166.csv
-
-# Path to the folder where trained models are saved
 MODEL_DIR=../model/saved_models
-
-# Server network settings
 HOST=0.0.0.0
 PORT=8000
-
-# AI APIs (used for voice assistance and insights generation)
 SARVAM_API_KEY=your_sarvam_api_key_here
 ```
 
-#### Frontend Configuration
-Navigate to the `frontend/` directory and check/create a `.env` file:
-```bash
-cd ../frontend
-```
-Create a `.env` file containing:
+**Frontend (`frontend/.env`):**
 ```env
-# Mappls (MapmyIndia) Map SDK Token
 VITE_MAPPLS_TOKEN=your_mappls_token_here
 ```
 
----
+*(Note: Ensure the dataset `jan to may police violation_anonymized791b166.csv` is present in the root directory prior to launch).*
 
-### Step 3: Train the Machine Learning Model
+### 2. Launch ParkIQ (Automated)
 
-Before starting the server, you must preprocess the raw dataset and train the classification model.
+Execute the provided shell script from the project root. This script will automatically provision the Python environment, install Node modules, compile the machine learning models (if missing), and start both the FastAPI backend and Vite frontend synchronously.
 
-1. Navigate to the `model/` directory:
-   ```bash
-   cd ../model
-   ```
-2. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the training script:
-   ```bash
-   cd src
-   python train.py
-   ```
-   *Note: This script will clean the dataset, engineer spatial features, create dynamic temporal lags, and train the LightGBM classifier using Optuna.*
-4. Run the evaluation script (optional):
-   ```bash
-   python evaluate.py
-   ```
-   *This saves performance plots (confusion matrix, feature importance, ROC curves) inside `model/saved_models/`.*
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+**Access Points:**
+*   **Frontend Dashboard:** [http://localhost:5173](http://localhost:5173)
+*   **Backend API / Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+To shut down all services gracefully, simply press `Ctrl+C` in the terminal.
 
 ---
 
-### Step 4: Start the Backend Server
-
-The backend acts as the data engine for the dashboard.
-
-1. Navigate to the `backend/` directory:
-   ```bash
-   cd ../../backend
-   ```
-2. Install python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Start the FastAPI application:
-   ```bash
-   python -m app.main
-   ```
-   *The API documentation will be available at [http://localhost:8000/docs](http://localhost:8000/docs).*
-
----
-
-### Step 5: Start the Model API Service (Optional)
-
-The backend is fully capable of running predictions by importing files directly from the model package. However, if you prefer running predictions via a standalone microservice:
-
-1. Navigate to the `model/api/` directory:
-   ```bash
-   cd ../model/api
-   ```
-2. Run the server:
-   ```bash
-   python model_api.py
-   ```
-   *The model service will start on [http://localhost:8001](http://localhost:8001).*
-
----
-
-### Step 6: Start the Frontend App
-
-1. Navigate to the `frontend/` directory:
-   ```bash
-   cd ../../frontend
-   ```
-2. Install NPM packages:
-   ```bash
-   npm install
-   ```
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-4. Open your web browser and navigate to **[http://localhost:5173](http://localhost:5173)**.
+### Manual Launch (Alternative)
+If you prefer running services manually in separate terminals:
+1. **Backend:** `cd backend && source ../.venv/bin/activate && pip install -r requirements.txt && python -m app.main`
+2. **Frontend:** `cd frontend && npm install && npm run dev`
 
 ---
 

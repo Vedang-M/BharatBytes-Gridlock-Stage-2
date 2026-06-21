@@ -48,3 +48,4 @@ catboost_info/
 
 # ── Backend cache ──────────────────────────
 backend/app/services/hotspot_cache.pkl
+.matplotlib/
