@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const api = axios.create({
-  baseURL: "http://localhost:8000/api", // change for production if needed
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 30000,
 });
 
@@ -104,6 +106,7 @@ export const getAIInsights = async (payload) => {
 };
 
 // ── Live Video Stream (WebSocket) ─────────────────────────────
-export const LIVE_STREAM_WS_URL = "ws://localhost:8000/ws/stream";
+const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
+export const LIVE_STREAM_WS_URL = `${WS_BASE_URL}/ws/stream`;
 
 export default api;

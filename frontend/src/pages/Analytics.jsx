@@ -279,7 +279,7 @@ export default function Analytics() {
 
       {/* ── What-If Zone Planner ─────────────────────────────── */}
       <div className="flat-card" style={{ marginBottom: 24 }}>
-        <WhatIfZonePlanner apiBase="http://localhost:8000" />
+        <WhatIfZonePlanner apiBase={import.meta.env.VITE_API_URL || "http://localhost:8000"} />
       </div>
 
     </div>

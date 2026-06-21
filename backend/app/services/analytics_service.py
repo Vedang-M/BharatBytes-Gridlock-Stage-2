@@ -70,13 +70,12 @@ class AnalyticsService:
     # ── Violation / Vehicle breakdowns ─────────────────────
     def get_violation_types(self) -> list[dict]:
         vt = (
-            self.df.explode("vtype_list")
-            .groupby("vtype_list")
-            .size()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
+            self.df["primary_violation"]
+            .value_counts()
+            .reset_index()
             .head(12)
         )
+        vt.columns = ["type", "count"]
         return vt.to_dict(orient="records")
 
     def get_vehicle_types(self) -> list[dict]:
@@ -307,7 +306,7 @@ class AnalyticsService:
         # ── 7. Violations cleared by type ─────────────────
         violations_cleared = round(before_violations * factor)
         top_types = (
-            zone_df.explode("vtype_list")["vtype_list"]
+            zone_df["primary_violation"]
             .value_counts()
             .head(5)
             .reset_index()

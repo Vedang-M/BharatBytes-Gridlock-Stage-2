@@ -7,7 +7,7 @@ import asyncio
 import base64
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.services.video_detection_service import VideoDetectionService
+# VideoDetectionService import moved inside the websocket handler to defer loading PyTorch
 
 router = APIRouter()
 
@@ -26,6 +26,7 @@ async def video_stream(websocket: WebSocket):
 
     detector = None
     try:
+        from app.services.video_detection_service import VideoDetectionService
         detector = VideoDetectionService(VIDEO_PATH)
 
         while True:

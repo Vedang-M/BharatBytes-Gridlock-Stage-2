@@ -14,7 +14,7 @@ venv/
 env/
 
 # ── Model artifacts ────────────────────────
-model/saved_models/*.pkl
+!model/saved_models/*.pkl
 model/saved_models/*.npz
 model/saved_models/*.png
 model/data/processed/
@@ -48,3 +48,4 @@ catboost_info/
 
 # ── Backend cache ──────────────────────────
 backend/app/services/hotspot_cache.pkl
+.matplotlib/

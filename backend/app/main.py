@@ -3,6 +3,17 @@ ParkIQ – Backend API Server  (port 8000)
 FastAPI application with CORS, lifespan events, and mounted routers.
 """
 import os
+import sys
+
+# Prepend virtualenv site-packages to sys.path
+venv_site_packages = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.venv', 'lib', 'python3.13', 'site-packages'))
+if os.path.exists(venv_site_packages):
+    sys.path.insert(0, venv_site_packages)
+
+# Configure Matplotlib backend and config directory to avoid sandbox and GUI issues
+os.environ['MPLBACKEND'] = 'Agg'
+os.environ['MPLCONFIGDIR'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.matplotlib'))
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,5 +87,5 @@ if __name__ == "__main__":
         "app.main:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8000)),
-        reload=True,
+        reload=os.getenv("RELOAD", "false").lower() == "true",
     )

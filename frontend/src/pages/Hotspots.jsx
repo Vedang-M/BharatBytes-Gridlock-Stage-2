@@ -81,8 +81,8 @@ export default function Hotspots() {
                 {hotspots.slice(0, 30).map((h, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: 600 }}>{h.top_junction}</td>
-                    <td style={{ fontWeight: 700, color: CCS_COLORS[h.CCS_category] }}>{h.CCS}</td>
-                    <td><span className={`badge badge-${(h.CCS_category || 'low').toLowerCase()}`}>{h.CCS_category}</span></td>
+                    <td style={{ fontWeight: 700, color: CCS_COLORS[(h.CCS_category || 'LOW').toUpperCase()] || 'var(--text-primary)' }}>{h.CCS}</td>
+                    <td><span className={`badge badge-${(h.CCS_category || 'LOW').toLowerCase()}`}>{(h.CCS_category || 'LOW').toUpperCase()}</span></td>
                     <td style={{ fontWeight: 600 }}>{Number(h.violations).toLocaleString()}</td>
                     <td>{h.peak_pct}%</td>
                   </tr>

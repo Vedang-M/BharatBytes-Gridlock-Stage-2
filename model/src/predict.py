@@ -19,10 +19,10 @@ class HotspotPredictor:
     """Wraps the trained model + scaler + encoder for inference."""
 
     def __init__(self, model_dir: str = MODEL_DIR):
+        os.environ["OMP_NUM_THREADS"] = "1"
         self.model  = joblib.load(os.path.join(model_dir, "hotspot_model.pkl"))
-        
-        scaler_path = os.path.join(model_dir, "scaler.pkl")
-        self.scaler = joblib.load(scaler_path) if os.path.exists(scaler_path) else None
+        if hasattr(self.model, "set_params"):
+            self.model.set_params(n_jobs=1)
         
         self.le     = joblib.load(os.path.join(model_dir, "label_encoder.pkl"))
         
@@ -30,6 +30,14 @@ class HotspotPredictor:
             self.metrics = json.load(f)
             
         self.feature_cols = self.metrics.get("feature_names", FEATURE_COLS)
+        
+        scaler_path = os.path.join(model_dir, "scaler.pkl")
+        self.scaler = joblib.load(scaler_path) if os.path.exists(scaler_path) else None
+        
+        # If the scaler expects a different number of features than the current model, it's a stale artifact
+        if self.scaler and hasattr(self.scaler, "n_features_in_"):
+            if self.scaler.n_features_in_ != len(self.feature_cols):
+                self.scaler = None
             
         self.is_regressor = "Regressor" in self.metrics["model_name"]
         self.bins = self.metrics.get("bins", [])
@@ -47,11 +55,12 @@ class HotspotPredictor:
         -------
         dict with keys: category, probabilities, confidence
         """
-        X = np.array([[features.get(col, 0) for col in self.feature_cols]])
-        X_scaled = self.scaler.transform(X) if self.scaler else X
+        X_df = pd.DataFrame([features]).reindex(columns=self.feature_cols, fill_value=0)
+        X_input = self.scaler.transform(X_df.values) if self.scaler else X_df.values
 
         if self.is_regressor:
-            score = self.model.predict(X_scaled)[0]
+            scores = self.model.predict(X_input)
+            score = scores[0]
             # Categorize using the saved bins
             categories = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
             actual_categories = categories[-len(self.bins)+1:] if len(self.bins) - 1 < len(categories) else categories
@@ -70,8 +79,8 @@ class HotspotPredictor:
                 "ccs_score": round(float(score), 2)
             }
         else:
-            pred_enc = self.model.predict(X_scaled)[0]
-            probas   = self.model.predict_proba(X_scaled)[0]
+            pred_enc = self.model.predict(X_input)[0]
+            probas   = self.model.predict_proba(X_input)[0]
 
             category = self.le.inverse_transform([pred_enc])[0]
             
@@ -96,10 +105,10 @@ class HotspotPredictor:
     def predict_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Vectorised prediction for a DataFrame."""
         X_df = df.reindex(columns=self.feature_cols, fill_value=0)
-        X_scaled = self.scaler.transform(X_df.values) if self.scaler else X_df.values
+        X_input = self.scaler.transform(X_df.values) if self.scaler else X_df.values
 
         if self.is_regressor:
-            scores = self.model.predict(X_scaled)
+            scores = self.model.predict(X_input)
             categories = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
             actual_categories = categories[-len(self.bins)+1:] if len(self.bins) - 1 < len(categories) else categories
             cats = pd.cut(scores, bins=self.bins, labels=actual_categories, include_lowest=True)
@@ -112,17 +121,17 @@ class HotspotPredictor:
                 "category": cats,
                 "confidence": 1.0,
                 "ccs_score": np.round(scores, 2)
-            })
+            }, index=df.index)
         else:
-            pred_enc = self.model.predict(X_scaled)
-            probas = self.model.predict_proba(X_scaled)
+            pred_enc = self.model.predict(X_input)
+            probas = self.model.predict_proba(X_input)
             categories = self.le.inverse_transform(pred_enc)
             confidences = probas.max(axis=1)
 
             return pd.DataFrame({
                 "category": categories,
                 "confidence": np.round(confidences, 4)
-            })
+            }, index=df.index)
 
 
 # ── CLI smoke test ─────────────────────────────────────────────

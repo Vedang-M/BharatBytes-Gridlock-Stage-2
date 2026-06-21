@@ -50,8 +50,6 @@ class HotspotService:
             ),
         )
         csv_path = os.path.abspath(csv_path)
-        print(f"[HotspotService] Loading CSV: {csv_path}")
-        self.df = self._load(csv_path)
         cache_path = os.path.join(os.path.dirname(__file__), "hotspot_cache.pkl")
         if os.path.exists(cache_path):
             print(f"[HotspotService] Loading cached clusters from {cache_path}")
@@ -59,8 +57,23 @@ class HotspotService:
             with open(cache_path, "rb") as f:
                 self.df_clust, self.clusters = pickle.load(f)
         else:
+            print(f"[HotspotService] Loading CSV: {csv_path}")
+            df = self._load(csv_path)
             print("[HotspotService] Running DBSCAN...")
-            self.df_clust, self.clusters = self._cluster(self.df)
+            self.df_clust, self.clusters = self._cluster(df)
+            
+            # Memory optimization: drop heavy columns before caching
+            drop_cols = ["created_datetime", "created_datetime_ist", "vtype_list", "violation_type"]
+            self.df_clust.drop(columns=[c for c in drop_cols if c in self.df_clust.columns], inplace=True)
+            
+            # Downcast to save massive amounts of RAM
+            for col in self.df_clust.select_dtypes(include=['float64']).columns:
+                self.df_clust[col] = self.df_clust[col].astype('float32')
+            for col in self.df_clust.select_dtypes(include=['int64']).columns:
+                self.df_clust[col] = pd.to_numeric(self.df_clust[col], downcast='integer')
+            for col in self.df_clust.select_dtypes(include=['object']).columns:
+                self.df_clust[col] = self.df_clust[col].astype('category')
+            
             print(f"[HotspotService] Saving cache to {cache_path}")
             import pickle
             with open(cache_path, "wb") as f:
@@ -225,7 +238,7 @@ class HotspotService:
         return self.clusters.head(top_n).replace({np.nan: None}).to_dict(orient="records")
 
     def get_heatmap(self, sample_n: int = 30000) -> list[dict]:
-        sample = self.df.sample(min(sample_n, len(self.df)), random_state=42)
+        sample = self.df_clust.sample(min(sample_n, len(self.df_clust)), random_state=42)
         return sample[["latitude", "longitude"]].rename(
             columns={"latitude": "lat", "longitude": "lon"}
         ).replace({np.nan: None}).to_dict(orient="records")
@@ -258,11 +271,11 @@ class HotspotService:
     def get_summary(self) -> dict:
         c = self.clusters
         return {
-            "total_violations": int(len(self.df)),
+            "total_violations": int(len(self.df_clust)),
             "total_clusters": int(len(c)),
             "critical_zones": int((c["CCS_category"] == "CRITICAL").sum()),
             "high_zones": int((c["CCS_category"] == "HIGH").sum()),
-            "peak_pct": round(float(self.df["is_peak"].mean() * 100), 1),
+            "peak_pct": round(float(self.df_clust["is_peak"].mean() * 100), 1),
             "top10_roi": int(c.head(10)["total_roi_inr"].sum()),
             "ccs_distribution": c["CCS_category"].value_counts().to_dict(),
         }
