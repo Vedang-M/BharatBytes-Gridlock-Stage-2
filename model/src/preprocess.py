@@ -128,7 +128,7 @@ def save_processed(df: pd.DataFrame, output_dir: str = PROCESSED_DIR) -> str:
     ]
     keep = [c for c in cols if c in df.columns]
     df[keep].to_csv(out_path, index=False)
-    print(f"  Saved → {out_path}")
+    print(f"  Saved -> {out_path}")
     return out_path
 
 
@@ -136,4 +136,4 @@ def save_processed(df: pd.DataFrame, output_dir: str = PROCESSED_DIR) -> str:
 if __name__ == "__main__":
     df = preprocess()
     save_processed(df)
-    print("\n✅ Preprocessing complete!")
+    print("\n[OK] Preprocessing complete!")

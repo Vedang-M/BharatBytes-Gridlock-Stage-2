@@ -29,7 +29,7 @@ ML model inference for a grid cell's features.
 - **Returns**: `{ category, probabilities, confidence }`
 
 ### `GET /api/predictions/model-metrics`
-Full model evaluation metrics (accuracy, F1, confusion matrix, feature importance).
+Full model evaluation metrics (accuracy, F1, cross-validation mean/std, confusion matrix, feature importance).
 
 ### `GET /api/predictions/forecast`
 7-day violation risk forecast.

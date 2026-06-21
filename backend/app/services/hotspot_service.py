@@ -78,6 +78,8 @@ class HotspotService:
         )
         df["hour_ist"] = df["created_datetime_ist"].dt.hour
         df["dow_ist"] = df["created_datetime_ist"].dt.day_name()
+        df["dow_num"] = df["created_datetime_ist"].dt.dayofweek
+        df["is_weekend"] = (df["dow_num"] >= 5).astype(int)
         df["month_ist"] = df["created_datetime_ist"].dt.month
         df["month_name"] = df["created_datetime_ist"].dt.strftime("%b")
         df["date_ist"] = df["created_datetime_ist"].dt.date
@@ -220,13 +222,13 @@ class HotspotService:
 
     # ── Public API ─────────────────────────────────────────
     def get_hotspots(self, top_n: int = 50) -> list[dict]:
-        return self.clusters.head(top_n).to_dict(orient="records")
+        return self.clusters.head(top_n).replace({np.nan: None}).to_dict(orient="records")
 
     def get_heatmap(self, sample_n: int = 30000) -> list[dict]:
         sample = self.df.sample(min(sample_n, len(self.df)), random_state=42)
         return sample[["latitude", "longitude"]].rename(
             columns={"latitude": "lat", "longitude": "lon"}
-        ).to_dict(orient="records")
+        ).replace({np.nan: None}).to_dict(orient="records")
 
     def get_schedule(self, n_zones: int = 8) -> list[dict]:
         top = self.clusters.head(n_zones).copy()
@@ -251,7 +253,7 @@ class HotspotService:
             "priority", "deploy_window", "violations", "peak_pct",
             "total_roi_inr", "top_police",
         ]
-        return top[cols].to_dict(orient="records")
+        return top[cols].replace({np.nan: None}).to_dict(orient="records")
 
     def get_summary(self) -> dict:
         c = self.clusters

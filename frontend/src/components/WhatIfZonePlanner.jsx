@@ -113,7 +113,6 @@ function Donut({ data = [] }) {
     return (
         <svg width="120" height="120" viewBox="0 0 120 120">
             {slices}
-            <text x="60" y="64" textAnchor="middle" fontSize="9" fill="#6b7280">mix</text>
         </svg>
     );
 }

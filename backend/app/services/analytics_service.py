@@ -253,21 +253,55 @@ class AnalyticsService:
         ccs_reduction      = round(ccs_before - ccs_after, 2)
         ccs_reduction_pct  = round((ccs_reduction / ccs_before * 100) if ccs_before > 0 else 0, 1)
 
-        # ── 5. Traffic flow improvement estimate ──────────
-        # Each % CCS reduction → ~0.35% flow improvement (empirical proxy)
-        flow_improvement_pct = round(ccs_reduction_pct * 0.35, 1)
+        # ── 5. Traffic capacity and delay (HCM/BPR Method) ─
+        # Base road capacity params (assuming 3-lane arterial)
+        W_total = 10.5        # Total width in meters
+        W_parking = 3.0       # Max effective width reduction due to parking
+        C_0 = 3600            # Max capacity (vehicles/hr)
+        V = 2700              # Typical peak volume (vehicles/hr)
+        T_0 = 5.0             # Free flow travel time (minutes)
+        alpha = 0.15          # BPR alpha
+        beta = 4.0            # BPR beta
 
-        # ── 6. Delay / fuel savings ────────────────────────
-        AVG_VEHICLES_PER_HOUR = 900
-        AVG_DELAY_MINUTES     = 2.5
-        VALUE_OF_TIME_INR     = 95
-        FUEL_COST_PER_VEH_MIN = 4.5
-        SESSION_HRS           = 2
+        # If there are violations, we assume the full parking lane width is blocked
+        # After clearance, we restore width proportional to clearance factor
+        W_eff_before = W_total - W_parking if before_violations > 0 else W_total
+        W_eff_after = W_eff_before + (W_parking * factor) if before_violations > 0 else W_total
 
-        delay_saved_min   = round(AVG_DELAY_MINUTES * factor, 2)
-        vehicles_affected = AVG_VEHICLES_PER_HOUR * SESSION_HRS
-        roi_vot_saved     = round(vehicles_affected * delay_saved_min / 60 * VALUE_OF_TIME_INR)
-        roi_fuel_saved    = round(vehicles_affected * delay_saved_min * FUEL_COST_PER_VEH_MIN)
+        C_before = C_0 * (W_eff_before / W_total)
+        C_after = C_0 * (W_eff_after / W_total)
+
+        # Flow improvement is the percentage increase in capacity
+        if C_before > 0:
+            flow_improvement_pct = round(((C_after - C_before) / C_before) * 100, 1)
+        else:
+            flow_improvement_pct = 0.0
+
+        # Delay computed using BPR function
+        T_before = T_0 * (1 + alpha * (V / C_before)**beta) if C_before > 0 else T_0 * 5
+        T_after = T_0 * (1 + alpha * (V / C_after)**beta) if C_after > 0 else T_0 * 5
+        delay_saved_min = round(max(0, T_before - T_after), 2)
+
+        # ── 6. Dynamic VoT and Fuel Cost ───────────────────
+        # Default standard rates (INR per hour for VoT, INR per minute for fuel)
+        VOT_RATES = {"CAR": 100, "MOTORCYCLE": 50, "BUS": 500, "TRUCK": 400}
+        FUEL_RATES = {"CAR": 5.0, "MOTORCYCLE": 2.0, "BUS": 15.0, "TRUCK": 20.0}
+        DEFAULT_VOT = 95
+        DEFAULT_FUEL = 4.5
+
+        # Compute dynamic rates based on vehicle mix in the zone
+        if before_violations > 0:
+            veh_counts = zone_df["vehicle_type"].value_counts(normalize=True)
+            dynamic_vot = sum(veh_counts.get(vt, 0) * VOT_RATES.get(vt, DEFAULT_VOT) for vt in veh_counts.index)
+            dynamic_fuel = sum(veh_counts.get(vt, 0) * FUEL_RATES.get(vt, DEFAULT_FUEL) for vt in veh_counts.index)
+        else:
+            dynamic_vot = DEFAULT_VOT
+            dynamic_fuel = DEFAULT_FUEL
+
+        SESSION_HRS = 2
+        vehicles_affected = V * SESSION_HRS
+        roi_vot_saved = round(vehicles_affected * (delay_saved_min / 60) * dynamic_vot)
+        roi_fuel_saved = round(vehicles_affected * delay_saved_min * dynamic_fuel)
         total_savings_inr = roi_vot_saved + roi_fuel_saved
 
         # ── 7. Violations cleared by type ─────────────────

@@ -28,10 +28,6 @@ ALERT_BG = (0, 0, 200)                  # Dark red
 ALERT_TEXT = "ALERT: HIGH CONGESTION RISK - DEPLOY ENFORCEMENT NOW"
 ALERT_CCS_THRESHOLD = 3.5
 
-
-
-
-
 class VideoDetectionService:
     """Processes video frames with YOLOv8 nano, tracks vehicles, detects
     stationary violations, computes live CCS, and renders overlays."""

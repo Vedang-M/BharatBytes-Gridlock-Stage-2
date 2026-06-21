@@ -38,3 +38,10 @@
 - PARKING NEAR BUSTOP/SCHOOL/HOSPITAL ETC
 - DOUBLE PARKING
 - PARKING ON CYCLE TRACK
+
+## Engineered ML Features (Spatial Grid)
+Before training, the raw coordinates are mapped to ~500m grid cells. The following features are engineered per cell to predict the Congestion Cost Score (CCS):
+- **Spatial Features**: `main_road_pct`, `junction_pct`
+- **Volume & Severity**: `violation_count`, `avg_severity`, `avg_veh_weight`
+- **Temporal Patterns**: `peak_pct`, `weekend_pct`, `unique_hours`, `temporal_entropy` (Shannon entropy of hourly spread)
+- **Advanced Context**: `lag_violation_count` (Dynamic Moore Neighborhood spatial lag to capture local density), `unique_vehicle_types`

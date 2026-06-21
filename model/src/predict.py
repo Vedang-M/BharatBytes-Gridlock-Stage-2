@@ -20,12 +20,16 @@ class HotspotPredictor:
 
     def __init__(self, model_dir: str = MODEL_DIR):
         self.model  = joblib.load(os.path.join(model_dir, "hotspot_model.pkl"))
-        self.scaler = joblib.load(os.path.join(model_dir, "scaler.pkl"))
+        
+        scaler_path = os.path.join(model_dir, "scaler.pkl")
+        self.scaler = joblib.load(scaler_path) if os.path.exists(scaler_path) else None
+        
         self.le     = joblib.load(os.path.join(model_dir, "label_encoder.pkl"))
-        self.feature_cols = FEATURE_COLS
         
         with open(os.path.join(model_dir, "model_metrics.json"), "r") as f:
             self.metrics = json.load(f)
+            
+        self.feature_cols = self.metrics.get("feature_names", FEATURE_COLS)
             
         self.is_regressor = "Regressor" in self.metrics["model_name"]
         self.bins = self.metrics.get("bins", [])
@@ -44,7 +48,7 @@ class HotspotPredictor:
         dict with keys: category, probabilities, confidence
         """
         X = np.array([[features.get(col, 0) for col in self.feature_cols]])
-        X_scaled = self.scaler.transform(X)
+        X_scaled = self.scaler.transform(X) if self.scaler else X
 
         if self.is_regressor:
             score = self.model.predict(X_scaled)[0]
@@ -92,7 +96,7 @@ class HotspotPredictor:
     def predict_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Vectorised prediction for a DataFrame."""
         X_df = df.reindex(columns=self.feature_cols, fill_value=0)
-        X_scaled = self.scaler.transform(X_df.values)
+        X_scaled = self.scaler.transform(X_df.values) if self.scaler else X_df.values
 
         if self.is_regressor:
             scores = self.model.predict(X_scaled)

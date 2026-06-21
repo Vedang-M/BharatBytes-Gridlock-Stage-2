@@ -1,39 +1,55 @@
 {
-  "model_name": "StackingClassifier",
-  "accuracy": 0.8695,
-  "precision_weighted": 0.8727,
-  "recall_weighted": 0.8695,
-  "f1_weighted": 0.8705,
-  "f1_macro": 0.8705,
-  "balanced_accuracy": 0.8695,
-  "mcc": 0.8263,
-  "cohen_kappa": 0.8259,
-  "cv_f1_mean": 0.8703,
-  "cv_f1_std": 0.0,
+  "model_name": "LGBMClassifier",
+  "accuracy": 0.8275,
+  "precision_weighted": 0.8311,
+  "recall_weighted": 0.8275,
+  "f1_weighted": 0.83,
+  "f1_macro": 0.8284,
+  "balanced_accuracy": 0.8271,
+  "mcc": 0.7703,
+  "cohen_kappa": 0.77,
+  "cv_f1_mean": 0.8067,
+  "cv_f1_std": 0.0335,
+  "cv_fold_scores": [
+    0.8385,
+    0.8003,
+    0.8132,
+    0.7459,
+    0.8354
+  ],
+  "outer_f1_mean": 0.83,
+  "outer_f1_std": 0.0224,
+  "outer_fold_scores": [
+    0.7988,
+    0.8417,
+    0.8648,
+    0.8163,
+    0.8287
+  ],
   "confusion_matrix": [
     [
-      91,
-      11,
+      710,
+      75,
       0,
       0
     ],
     [
-      6,
-      86,
-      10,
-      0
+      64,
+      625,
+      87,
+      1
     ],
     [
-      0,
-      9,
-      86,
-      6
-    ],
-    [
-      0,
       1,
-      10,
-      90
+      118,
+      587,
+      64
+    ],
+    [
+      0,
+      4,
+      122,
+      649
     ]
   ],
   "categories": [
@@ -44,73 +60,57 @@
   ],
   "per_class_metrics": {
     "LOW": {
-      "precision": 0.9381,
-      "recall": 0.8922,
-      "f1": 0.9146,
-      "support": 102
+      "precision": 0.9161,
+      "recall": 0.9045,
+      "f1": 0.9103,
+      "support": 785
     },
     "MODERATE": {
-      "precision": 0.8037,
-      "recall": 0.8431,
-      "f1": 0.823,
-      "support": 102
+      "precision": 0.7603,
+      "recall": 0.8044,
+      "f1": 0.7817,
+      "support": 777
     },
     "HIGH": {
-      "precision": 0.8113,
-      "recall": 0.8515,
-      "f1": 0.8309,
-      "support": 101
+      "precision": 0.7374,
+      "recall": 0.7623,
+      "f1": 0.7497,
+      "support": 770
     },
     "CRITICAL": {
-      "precision": 0.9375,
-      "recall": 0.8911,
-      "f1": 0.9137,
-      "support": 101
+      "precision": 0.909,
+      "recall": 0.8374,
+      "f1": 0.8717,
+      "support": 775
     }
   },
   "feature_importance": {
-    "weekend_pct": 0.0005,
-    "unique_hours": 0.0039,
-    "n_violations_avg": 0.0254,
-    "unique_vehicle_types": 0.0121,
-    "temporal_entropy": 0.0271,
-    "peak_pct": 0.3837,
-    "main_road_pct": 0.1337,
-    "junction_pct": 0.2919,
-    "sev_25": 0.0569,
-    "sev_75": 0.0379,
-    "veh_25": 0.0975,
-    "veh_75": 0.0732,
-    "lag_ccs": 0.0266
+    "violation_count": 0.2811,
+    "avg_severity": 0.1045,
+    "avg_veh_weight": 0.061,
+    "peak_pct": 0.2419,
+    "main_road_pct": 0.0685,
+    "junction_pct": 0.128,
+    "weekend_pct": 0.0021,
+    "unique_hours": 0.0048,
+    "unique_vehicle_types": 0.0056,
+    "temporal_entropy": 0.0035,
+    "lag_violation_count": -0.0001
   },
-  "train_size": 1624,
-  "test_size": 406,
-  "n_features": 13,
+  "train_size": 2521,
+  "test_size": 3107,
+  "n_features": 11,
   "feature_names": [
-    "weekend_pct",
-    "unique_hours",
-    "n_violations_avg",
-    "unique_vehicle_types",
-    "temporal_entropy",
+    "violation_count",
+    "avg_severity",
+    "avg_veh_weight",
     "peak_pct",
     "main_road_pct",
     "junction_pct",
-    "sev_25",
-    "sev_75",
-    "veh_25",
-    "veh_75",
-    "lag_ccs"
-  ],
-  "ccs_thresholds": {
-    "LOW_MAX": 1.59,
-    "MODERATE_MAX": 2.12,
-    "HIGH_MAX": 2.73
-  },
-  "bins": [
-    0.4,
-    1.59,
-    2.12,
-    2.73,
-    5.68
+    "weekend_pct",
+    "unique_hours",
+    "unique_vehicle_types",
+    "temporal_entropy",
+    "lag_violation_count"
   ]
 }

@@ -35,7 +35,7 @@
                    │            Model Service (FastAPI)           │
                    │             http://localhost:8001            │
                    │  ┌────────────────────────────────────────┐  │
-                   │  │   Trained Classifier (RF / GBT)        │  │
+                   │  │   LightGBM Classifier (Optuna Tuned)   │  │
                    │  └────────────────────────────────────────┘  │
                    └──────────────────────────────────────────────┘
 ```
@@ -43,9 +43,9 @@
 ## ML Pipeline
 
 1. **Preprocess** – Clean 298k violations, parse JSON, engineer features
-2. **Feature Engineering** – Spatial grid cells (~500m), 12 features per cell
-3. **Training** – RandomForest + GradientBoosting with 5-fold CV + GridSearchCV
-4. **Evaluation** – Accuracy, F1, confusion matrix, ROC, feature importance
+2. **Feature Engineering** – Spatial grid cells (~500m), 12 features per cell + Dynamic Spatial Lags
+3. **Training** – LightGBM Classifier tuned via Optuna (20 trials) + 5-fold Outer CV with Inner Early Stopping
+4. **Evaluation** – Accuracy, F1, CV Mean/Std Gap Analysis, confusion matrix, feature permutation importance
 5. **Inference** – REST API at :8001/predict
 
 ## Real-Time Computer Vision Pipeline

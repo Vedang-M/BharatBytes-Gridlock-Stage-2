@@ -21,17 +21,17 @@ graph TD
 
     subgraph Processing Engine
         Spatial[Spatial Gating & Feature Engine<br/>500m Grid Matrix + DBSCAN]
-        YOLO[YOLOv8 Stationary Object Tracking<br/>150-300 Frame Temporal Buffer]
+        YOLO[YOLOv8 Rapid Anomaly Tracking<br/>10-Frame Temporal Buffer]
     end
 
-    subgraph ML & Inference Stacking Layer
-        Stack[Stacking Ensemble Classifier<br/>CatBoost + XGBoost + LightGBM]
+    subgraph ML & Inference Layer
+        LGBM[LightGBM Classifier<br/>Dynamic Lags & Entropy]
         Optuna[Optuna Bayesian Optimization]
     end
 
     subgraph Core Business Services
         Hotspot[hotspot_service.py<br/>DBSCAN Clustering]
-        Video[video_detection_service.py<br/>Traffic Signal Contextual Filter]
+        Video[video_detection_service.py<br/>Latency-Optimized Violation Logic]
         Analytics[analytics_service.py<br/>BPR Congestion Formula Engine]
     end
 
@@ -46,11 +46,11 @@ graph TD
     CCTV --> YOLO
     
     Spatial --> Hotspot
-    Hotspot --> Stack
-    Optuna --> Stack
+    Hotspot --> LGBM
+    Optuna --> LGBM
     
     YOLO --> Video
-    Stack --> Analytics
+    LGBM --> Analytics
     Hotspot --> Analytics
     
     Analytics --> React
@@ -78,23 +78,19 @@ $$T = T_0 \left[1 + \alpha \left(\frac{V}{C}\right)^\beta\right]$$
 **The Economic Impact Engine:**
 When illegal parking occurs, it effectively reduces the functional lane width ($W_p$). This geometric constraint dynamically drops the maximum capacity ($C_0 \to C_{restricted}$), causing an immediate escalation in the volume-to-capacity ratio ($V/C$). ParkIQ calculates this resulting delay ($\Delta T$) and converts it into direct economic loss (Enforcement Opportunity Cost) by modeling the Value of Time (VoT) and excess fuel burn across a distributed vehicle-type matrix (HGV, LGV, Two-Wheelers).
 
-### Spatial ML Pipeline & Stacking Ensemble (Detailed Architecture)
-ParkIQ does not rely on basic algorithms like Random Forests. Our core intelligence layer is powered by a rigorously optimized **StackingClassifier**. The pipeline is built to prevent spatial data leakage and ensure maximum generalization across Bengaluru's diverse urban grid.
+### Spatial ML Pipeline (Detailed Architecture)
+ParkIQ does not rely on basic algorithms like Random Forests. Our core intelligence layer is powered by a rigorously optimized **LightGBM Classifier**. The pipeline is built to prevent spatial data leakage and ensure maximum generalization across Bengaluru's diverse urban grid.
 
 1.  **Spatial Framework & Feature Engineering (`feature_engineering.py`)**: 
-    We implement a rigid **500m grid-cell matrix** (approx. $0.0025^\circ$ coordinates). The engine extracts 12 distinct features per cell. Crucially, we incorporate **Moore Neighborhood spatial lag features** (`lag_violation_count`, `lag_ccs`) to understand localized density contexts, and compute **Shannon temporal entropy** to measure how spread out violations are across hours. Interaction features like `traffic_density_index` and `peak_severity_risk` are also synthesized.
+    We implement a rigid **500m grid-cell matrix** (approx. $0.0025^\circ$ coordinates). The engine extracts **11 core features** per cell. Crucially, we incorporate a **Moore Neighborhood spatial lag feature** (`lag_violation_count`) to understand localized density contexts, and compute **Shannon temporal entropy** to measure how spread out violations are across hours. *(Note: While other interaction features are generated, the pipeline is strictly filtered down to these 11 primary signals to prevent overfitting).*
 2.  **DBSCAN & K-Means Reconciliation**: 
     The grid framework is strictly reconciled with our base **DBSCAN pre-clustering layer** and an unsupervised **K-Means** spatial abstraction layer. This ensures that the AI predictions correspond accurately to actionable geographic hotspots without memorizing raw GPS coordinates.
-3.  **The Stacking Ensemble (`train.py`)**: 
-    The base layer comprises three powerful gradient boosting frameworks:
-    *   **CatBoost** (handles complex categorical interactions)
-    *   **XGBoost** (optimized for deep tree spatial splits)
-    *   **LightGBM** (leaf-wise growth for performance)
-    The meta-learner is a **Logistic Regression** model, ensuring smooth probability calibration across the outputs.
+3.  **The LightGBM Classifier (`train.py`)**: 
+    The core prediction model utilizes **LightGBM** due to its leaf-wise growth, delivering high performance and robustness for deep spatial splits and complex engineered features like dynamic lags.
 4.  **Rigorous Optimization & Validation**: 
-    The ensemble is heavily tuned via **Optuna** Bayesian optimization over 30 trials using a rigid 3-fold inner cross-validation. The final selected model undergoes 5-fold Stratified Cross-Validation. Targets are dynamically binned into LOW, MODERATE, HIGH, and CRITICAL categories using quantile cuts (`pd.qcut`) to prevent class imbalance.
+    The model is heavily tuned via **Optuna** Bayesian optimization over 20 trials using an inner 5-fold cross-validation loop with early stopping. The final model is rigorously evaluated using an Outer 5-fold Stratified Cross-Validation loop to prevent overfitting and guarantee generalization. Targets are dynamically binned into LOW, MODERATE, HIGH, and CRITICAL categories to prevent class imbalance.
 
-Trained model artifacts are strictly versioned (e.g., `hotspot_model.pkl`, `scaler.pkl`, `label_encoder.pkl`) and deployed via our dedicated ML Inference API.
+Trained model artifacts are strictly versioned (e.g., `hotspot_model.pkl`, `label_encoder.pkl`, `model_metrics.json`) and deployed via our dedicated ML Inference API.
 
 ---
 
@@ -104,8 +100,7 @@ ParkIQ's real-time video analytics pipeline (`video_detection_service.py`) utili
 
 We go far beyond naive bounding box detection:
 *   **Robust State-Vector Tracking**: Every vehicle is assigned a continuous state-vector, mapping its trajectory, velocity, and spatial footprint across the visual plane.
-*   **Long-Term Temporal Buffers (150–300 Frames)**: To eliminate false positives, the system maintains deep temporal memory. A vehicle must remain strictly stationary across long temporal horizons (adjusted for FPS) to trigger an anomaly.
-*   **Traffic Signal Contextual Filter**: This proprietary logic layer isolates authentic parking anomalies from standard urban gridlock. By analyzing the collective motion vectors of surrounding vehicles, the system understands when a car is stopped at a red light (gridlock) versus when it is illegally parked obstructing a flowing lane.
+*   **Rapid Anomaly Detection**: The system maintains a tightly tuned 10-frame temporal buffer to detect illegal stationary vehicles with extremely low latency, ensuring immediate alerts for fresh gridlock events.
 
 ---
 
@@ -114,7 +109,7 @@ We go far beyond naive bounding box detection:
 *   **DBSCAN Spatial Clustering Engine** 
     Groups raw GPS coordinates of over 298k illegal parking events into actionable, high-density geographic hotspots, stripping away noise and outliers.
 *   **Dynamic Enforcement Opportunity Cost (Financial Dashboard)**
-    Instead of just displaying "traffic delays", this engine calculates the real-time daily economic loss caused by unpatrolled high-risk zones. It models excess fuel burn and wasted man-hours, presented in a premium glassmorphic UI with glowing pulse animations and dynamic shimmering progress bars to drive immediate police action.
+    Calculates the real-time daily economic loss caused by unpatrolled high-risk zones. It features an interactive **"Simulate Manpower"** slider that allows users to instantly visualize how scaling up or down patrol deployments impacts the exact economic loss, coverage gap, and exposed critical zones in real-time.
 *   **Interactive What-If Zone Planner** 
     An advanced sandbox UI (`WhatIfZonePlanner.jsx`) allowing city planners to draw polygons on the map and simulate traffic improvements. Planners can adjust "Clearance Percentages" to instantly see how clearing *X%* of a hotspot translates to specific ₹/day ROI and Congestion Cost Score (CCS) reductions.
 *   **AI Chatbot & Smart Insights (Powered by Sarvam AI)** 
@@ -208,7 +203,7 @@ Before starting the server, you must preprocess the raw dataset and train the cl
    cd src
    python train.py
    ```
-   *Note: This script will clean the dataset, engineer spatial features based on 500m grid cells, apply SMOTE class balancing, and train the Stacking Ensemble classifier.*
+   *Note: This script will clean the dataset, engineer spatial features, create dynamic temporal lags, and train the LightGBM classifier using Optuna.*
 4. Run the evaluation script (optional):
    ```bash
    python evaluate.py

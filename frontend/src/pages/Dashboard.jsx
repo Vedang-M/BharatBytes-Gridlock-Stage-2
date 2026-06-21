@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [heatmap, setHeatmap] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [selectedHotspotIndex, setSelectedHotspotIndex] = useState(0);
+  const [simulatedPatrolTeams, setSimulatedPatrolTeams] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const pieChartRef = useRef(null);
@@ -53,6 +54,12 @@ export default function Dashboard() {
     });
   }, []);
 
+  useEffect(() => {
+    if (schedule.length > 0 && simulatedPatrolTeams === null) {
+      setSimulatedPatrolTeams(schedule.length);
+    }
+  }, [schedule, simulatedPatrolTeams]);
+
   if (loading) {
     return (
       <div className="page-container">
@@ -77,22 +84,23 @@ export default function Dashboard() {
   ] : [];
 
   // ── Enforcement Opportunity Cost computations ───────────────
-  const totalZones = hotspots.length;
-  const patrolledZones = schedule.length;
-  const unpatrolledZones = totalZones - patrolledZones;
-  const coverageGapPct = totalZones > 0
-    ? ((unpatrolledZones / totalZones) * 100).toFixed(1) : 0;
-  const avgViolationsPerZone = hotspots.length > 0
-    ? hotspots.reduce((s, h) => s + (h.violations || 0), 0) / hotspots.length
-    : 0;
-  const estimatedMissedViolations = Math.round(avgViolationsPerZone * unpatrolledZones);
-  const missedEconomicCost = Math.round(estimatedMissedViolations * 150 * 2.5 / 60);
-  const highPlusUnpatrolled = hotspots
-    .filter(h => ['HIGH', 'CRITICAL'].includes(h.CCS_category))
-    .filter(h => !schedule.some(s => s.top_junction === h.top_junction))
-    .length;
+  // Target zones = all CRITICAL + HIGH zones across the city
+  const targetZones = summary ? (summary.critical_zones + summary.high_zones) : 0;
+  const patrolledZones = simulatedPatrolTeams !== null ? simulatedPatrolTeams : schedule.length;
+  const unpatrolledZones = Math.max(0, targetZones - patrolledZones);
+  
+  const coverageGapPct = targetZones > 0
+    ? ((unpatrolledZones / targetZones) * 100).toFixed(1) : 0;
+    
+  // Dynamic financial cost using ML outputs
+  const avgRoiPerZone = summary ? (summary.top10_roi / 10) : 27375;
+  const missedEconomicCost = Math.round(unpatrolledZones * avgRoiPerZone);
+  
+  const highPlusUnpatrolled = unpatrolledZones;
+  
   const coverageColor = coverageGapPct > 70 ? '#ef4444'
     : coverageGapPct > 40 ? '#f97316' : '#22c55e';
+    
   const recoveryCost = Math.round(missedEconomicCost * 0.4);
 
   return (
@@ -198,8 +206,18 @@ export default function Dashboard() {
             }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <span style={{ color: 'var(--text-primary)' }}>{patrolledZones}</span> of {totalZones} hotspot clusters covered today
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ color: 'var(--text-primary)' }}>{patrolledZones}</span> of {targetZones} HIGH+ clusters covered
+              <input 
+                type="range" 
+                min="0" 
+                max={Math.min(targetZones, 500)} 
+                value={patrolledZones} 
+                onChange={(e) => setSimulatedPatrolTeams(Number(e.target.value))}
+                style={{ width: 120, accentColor: '#f97316' }}
+                title="Simulate Patrol Manpower"
+              />
+              <span style={{ fontSize: '0.75rem', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 4, color: 'var(--text-primary)', cursor: 'default' }}>Simulate Manpower</span>
             </div>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f97316', background: 'rgba(249, 115, 22, 0.08)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(249, 115, 22, 0.2)' }}>
               Deploying to {highPlusUnpatrolled} additional HIGH+ zones recovers <span style={{fontWeight: 800}}>₹{recoveryCost.toLocaleString('en-IN')}</span> daily
@@ -243,8 +261,8 @@ export default function Dashboard() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius="60%"
-                  outerRadius="80%"
+                  innerRadius="50%"
+                  outerRadius="70%"
                   paddingAngle={3}
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}

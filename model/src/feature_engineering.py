@@ -19,19 +19,18 @@ CELL_SIZE = 0.0025  # ≈ 250 m at this latitude
 
 # ── Feature columns used by the ML model ───────────────────────
 FEATURE_COLS = [
+    "violation_count",
+    "avg_severity",
+    "avg_veh_weight",
+    "peak_pct",
+    "main_road_pct",
+    "junction_pct",
     "weekend_pct",
     "unique_hours",
     "n_violations_avg",
     "unique_vehicle_types",
     "temporal_entropy",
-    "peak_pct",
-    "main_road_pct",
-    "junction_pct",
-    "sev_25",
-    "sev_75",
-    "veh_25",
-    "veh_75",
-    "lag_ccs"
+    "lag_violation_count"
 ]
 
 
@@ -108,7 +107,7 @@ def create_grid_features(df: pd.DataFrame = None):
     cells["temporal_entropy"] = cells["temporal_entropy"].fillna(0)
 
     # Drop cells with too few violations for statistical reliability
-    MIN_VIOLATIONS = 5
+    MIN_VIOLATIONS = 1
     cells = cells[cells["violation_count"] >= MIN_VIOLATIONS].copy()
     
     # Fill NaN stds (occurs if only 1 item)
@@ -118,7 +117,7 @@ def create_grid_features(df: pd.DataFrame = None):
     # Temporal Context (Weekend Ratio)
     cells["weekend_ratio"] = cells["weekend_pct"] / (1.0 - cells["weekend_pct"] + 1e-5)
     
-    print(f"  Grid cells (≥{MIN_VIOLATIONS} violations): {len(cells):,}")
+    print(f"  Grid cells (>={MIN_VIOLATIONS} violations): {len(cells):,}")
 
     # ── K-Means Spatial Clustering ────────────────────────────
     kmeans = KMeans(n_clusters=15, random_state=42, n_init="auto")
@@ -128,9 +127,9 @@ def create_grid_features(df: pd.DataFrame = None):
     cells["traffic_density_index"] = cells["main_road_pct"] * cells["junction_pct"]
     cells["peak_severity_risk"] = cells["peak_pct"] * cells["n_violations_avg"]
 
-    # ── Compute CCS target using the same weighted formula ──
-    scaler = MinMaxScaler()
-    cells["dn"] = scaler.fit_transform(cells[["violation_count"]]).flatten()
+    # ── Compute CCS target using domain constants ───────────
+    MAX_EXPECTED_VIOLATIONS = 200.0
+    cells["dn"] = np.clip(np.log1p(cells["violation_count"]) / np.log1p(MAX_EXPECTED_VIOLATIONS), 0, 1)
     cells["sn"] = (cells["avg_severity"] - 1) / 5
     cells["wn"] = (cells["avg_veh_weight"] - 1) / 4
     cells["pn"] = cells["peak_pct"]
@@ -146,30 +145,22 @@ def create_grid_features(df: pd.DataFrame = None):
         + 0.10 * cells["mn"]
     ).mul(10).round(2)
 
-    cells["CCS_category"] = pd.qcut(
-        cells["CCS"],
-        q=4,
-        labels=["LOW", "MODERATE", "HIGH", "CRITICAL"],
-        duplicates="drop"
-    )
-
-    # ── Spatial Lag Features (Moore Neighborhood) ────────────────
-    vc_dict = dict(zip(cells["cell_id"], cells["violation_count"]))
-    ccs_dict = dict(zip(cells["cell_id"], cells["CCS"]))
+    q1 = cells["CCS"].quantile(0.25)
+    q2 = cells["CCS"].quantile(0.50)
+    q3 = cells["CCS"].quantile(0.75)
     
-    def get_moore_lag(row, val_dict):
-        lat = row["lat_bin"]
-        lon = row["lon_bin"]
-        neighbors = [
-            f"{lat-1}_{lon-1}", f"{lat-1}_{lon}", f"{lat-1}_{lon+1}",
-            f"{lat}_{lon-1}",                     f"{lat}_{lon+1}",
-            f"{lat+1}_{lon-1}", f"{lat+1}_{lon}", f"{lat+1}_{lon+1}"
-        ]
-        vals = [val_dict.get(n) for n in neighbors if val_dict.get(n) is not None]
-        return np.mean(vals) if vals else 0.0
+    # Ensure bin edges are strictly unique if quantiles overlap
+    bins = sorted(list(set([-np.inf, q1, q2, q3, np.inf])))
+    labels = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
+    if len(bins) - 1 < len(labels):
+        labels = labels[-(len(bins)-1):]
 
-    cells["lag_violation_count"] = cells.apply(lambda r: get_moore_lag(r, vc_dict), axis=1)
-    cells["lag_ccs"] = cells.apply(lambda r: get_moore_lag(r, ccs_dict), axis=1)
+    cells["CCS_category"] = pd.cut(
+        cells["CCS"],
+        bins=bins,
+        labels=labels,
+        include_lowest=True
+    )
 
     print(f"  CCS distribution: {cells['CCS_category'].value_counts().to_dict()}")
     return cells, FEATURE_COLS
@@ -182,7 +173,7 @@ def save_grid_features(
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, "grid_features.csv")
     cells.to_csv(out_path, index=False)
-    print(f"  Saved → {out_path}")
+    print(f"  Saved -> {out_path}")
     return out_path
 
 
