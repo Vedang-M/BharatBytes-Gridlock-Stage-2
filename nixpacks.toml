@@ -1,6 +1,5 @@
+[providers]
+python = true
+
 [phases.setup]
-nixPkgs = [
-  "libGL",
-  "xorg.libX11",
-  "xorg.libxcb"
-]
+nixPkgs = ["python312"]
