@@ -1,7 +1,8 @@
 # ParkIQ – Enterprise Intelligent Transportation System (ITS)
 
 > **GridLock Hackathon · Stage 2 · Problem Statement 1**  
-> **Built for Bengaluru Traffic Police (BTP)**
+> **Built for Bengaluru Traffic Police (BTP)**  
+> 📊 **[Pitch Deck / Presentation (Canva)](https://canva.link/c3gvjoszc9e7s91)**
 
 ParkIQ is an enterprise-grade, venture-ready Intelligent Transportation System (ITS) designed to autonomously detect, quantify, and mitigate parking-induced congestion. Engineered for the Bengaluru Traffic Police (BTP), ParkIQ processes over 298,450 spatial-temporal violation records and integrates real-time CCTV edge analytics to transform reactive patrols into dynamic, data-driven enforcement operations.
 
@@ -77,18 +78,23 @@ $$T = T_0 \left[1 + \alpha \left(\frac{V}{C}\right)^\beta\right]$$
 **The Economic Impact Engine:**
 When illegal parking occurs, it effectively reduces the functional lane width ($W_p$). This geometric constraint dynamically drops the maximum capacity ($C_0 \to C_{restricted}$), causing an immediate escalation in the volume-to-capacity ratio ($V/C$). ParkIQ calculates this resulting delay ($\Delta T$) and converts it into direct economic loss (Enforcement Opportunity Cost) by modeling the Value of Time (VoT) and excess fuel burn across a distributed vehicle-type matrix (HGV, LGV, Two-Wheelers).
 
-### Spatial ML Pipeline & Stacking Ensemble
-ParkIQ does not rely on basic Random Forests. Our core intelligence layer is powered by a rigorously optimized **StackingClassifier**, combining:
-1.  **CatBoost** 
-2.  **XGBoost** 
-3.  **LightGBM** 
+### Spatial ML Pipeline & Stacking Ensemble (Detailed Architecture)
+ParkIQ does not rely on basic algorithms like Random Forests. Our core intelligence layer is powered by a rigorously optimized **StackingClassifier**. The pipeline is built to prevent spatial data leakage and ensure maximum generalization across Bengaluru's diverse urban grid.
 
-The ensemble is heavily tuned via **Optuna** Bayesian optimization to ensure maximum generalization across Bengaluru's diverse urban grid. 
+1.  **Spatial Framework & Feature Engineering (`feature_engineering.py`)**: 
+    We implement a rigid **500m grid-cell matrix** (approx. $0.0025^\circ$ coordinates). The engine extracts 12 distinct features per cell. Crucially, we incorporate **Moore Neighborhood spatial lag features** (`lag_violation_count`, `lag_ccs`) to understand localized density contexts, and compute **Shannon temporal entropy** to measure how spread out violations are across hours. Interaction features like `traffic_density_index` and `peak_severity_risk` are also synthesized.
+2.  **DBSCAN & K-Means Reconciliation**: 
+    The grid framework is strictly reconciled with our base **DBSCAN pre-clustering layer** and an unsupervised **K-Means** spatial abstraction layer. This ensures that the AI predictions correspond accurately to actionable geographic hotspots without memorizing raw GPS coordinates.
+3.  **The Stacking Ensemble (`train.py`)**: 
+    The base layer comprises three powerful gradient boosting frameworks:
+    *   **CatBoost** (handles complex categorical interactions)
+    *   **XGBoost** (optimized for deep tree spatial splits)
+    *   **LightGBM** (leaf-wise growth for performance)
+    The meta-learner is a **Logistic Regression** model, ensuring smooth probability calibration across the outputs.
+4.  **Rigorous Optimization & Validation**: 
+    The ensemble is heavily tuned via **Optuna** Bayesian optimization over 30 trials using a rigid 3-fold inner cross-validation. The final selected model undergoes 5-fold Stratified Cross-Validation. Targets are dynamically binned into LOW, MODERATE, HIGH, and CRITICAL categories using quantile cuts (`pd.qcut`) to prevent class imbalance.
 
-**Spatial Framework:**
-We implement a rigid **500m grid-cell matrix**. Feature engineering incorporates **Moore neighborhood matrices** and computed spatial lag features to understand localized density contexts. This grid framework is strictly reconciled with our base **DBSCAN pre-clustering layer**, ensuring that AI predictions correspond accurately to actionable geographic hotspots. 
-
-Trained model artifacts are strictly versioned (e.g., `hotspot_model.pkl`, `scaler.pkl`) and deployed via our dedicated ML Inference API.
+Trained model artifacts are strictly versioned (e.g., `hotspot_model.pkl`, `scaler.pkl`, `label_encoder.pkl`) and deployed via our dedicated ML Inference API.
 
 ---
 
@@ -103,17 +109,26 @@ We go far beyond naive bounding box detection:
 
 ---
 
-## ✨ Enterprise Features
+## ✨ Enterprise Features (In-Depth)
 
-*   **DBSCAN Spatial Clustering** – Groups raw GPS coordinates of illegal parking events into high-density geographic hotspots.
-*   **Dynamic Enforcement Opportunity Cost** – Calculates the real-time daily economic loss caused by unpatrolled high-risk zones, presented in a premium glassmorphic UI with glowing pulse animations and dynamic shimmering progress bars.
-*   **Interactive What-If Zone Planner** – Advanced sandbox (`WhatIfZonePlanner.jsx`) allowing city planners to simulate traffic improvements and ROI if specific hotspots are cleared.
-*   **AI Chatbot & Smart Insights** – Features an integrated speech-enabled AI assistant powered by Sarvam AI to provide verbal/textual explanations of metrics, analytics, and patrol strategies.
-*   **City-Wide CCS Distribution Analytics** – Analyzes all identified zones directly via the backend API to provide a comprehensive, unbiased view of congestion severity proportional to the entire city.
-*   **Interactive Hotspot Profiles** – Dynamic, selectable widgets that render localized zone profiles and chart analytics instantly on demand.
-*   **Model Diagnostics UI** – Structured visual sections detailing model confidence, test sample verification, and blind spot identification for full algorithmic transparency.
-*   **Interactive Live Map** – Visualizes hotspot clusters, violation heatmaps, and police patrol routing in real-time.
-*   **7-Day Violation Risk Forecast** – Employs pattern-based historical analysis to forecast peak violation hours and risk levels.
+*   **DBSCAN Spatial Clustering Engine** 
+    Groups raw GPS coordinates of over 298k illegal parking events into actionable, high-density geographic hotspots, stripping away noise and outliers.
+*   **Dynamic Enforcement Opportunity Cost (Financial Dashboard)**
+    Instead of just displaying "traffic delays", this engine calculates the real-time daily economic loss caused by unpatrolled high-risk zones. It models excess fuel burn and wasted man-hours, presented in a premium glassmorphic UI with glowing pulse animations and dynamic shimmering progress bars to drive immediate police action.
+*   **Interactive What-If Zone Planner** 
+    An advanced sandbox UI (`WhatIfZonePlanner.jsx`) allowing city planners to draw polygons on the map and simulate traffic improvements. Planners can adjust "Clearance Percentages" to instantly see how clearing *X%* of a hotspot translates to specific ₹/day ROI and Congestion Cost Score (CCS) reductions.
+*   **AI Chatbot & Smart Insights (Powered by Sarvam AI)** 
+    Features an integrated speech-enabled AI assistant. It provides verbal and textual explanations of complex metrics, summarizes zone analytics, and actively recommends patrol strategies, breaking down technical barriers for ground-level officers.
+*   **City-Wide CCS Distribution Analytics** 
+    Analyzes all identified zones directly via the backend API to provide a comprehensive, unbiased view of congestion severity (LOW to CRITICAL) proportional to the entire city layout.
+*   **Interactive Hotspot Profiles & Radar Charts** 
+    Dynamic, selectable widgets that render localized zone profiles. Includes multi-axis radar charts mapping Density, Peak %, Severity, Main Road alignment, and Junction proximity instantly on demand.
+*   **Model Diagnostics & Algorithmic Transparency UI** 
+    Structured visual sections detailing model confidence, test sample verification, confusion matrices, and feature permutation importance (e.g., showing how heavily `temporal_entropy` influenced the prediction).
+*   **Automated Deployment Scheduling** 
+    Generates algorithmic deployment windows (e.g., 08:00-10:00) and priority queues (IMMEDIATE, HIGH) for the highest-impact clusters, optimizing existing police manpower.
+*   **7-Day Violation Risk Forecast** 
+    Employs pattern-based historical analysis mapped against day-of-week trends to forecast future peak violation hours and categorical risk levels up to a week in advance.
 
 ---
 
