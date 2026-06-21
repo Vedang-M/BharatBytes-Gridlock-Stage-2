@@ -1,0 +1,6 @@
+[build]
+builder = "nixpacks"
+buildCommand = "python -c \"import zipfile; zipfile.ZipFile('jan to may police violation_anonymized791b166.zip', 'r').extractall('.')\" && pip install -r backend/requirements.txt -r model/requirements.txt && python model/src/train.py"
+
+[deploy]
+startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
