@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: parkiq-backend
+    env: python
+    buildCommand: |
+      unzip -q -o "jan to may police violation_anonymized791b166.zip" -d .
+      cd backend
+      pip install -r requirements.txt
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: CSV_PATH
+        value: "../jan to may police violation_anonymized791b166.csv"
+      - key: MODEL_DIR
+        value: "../model/saved_models"
+      - key: PYTHON_VERSION
+        value: "3.10.12"
+      - key: SARVAM_API_KEY
+        sync: false # User must provide this in the Render dashboard
