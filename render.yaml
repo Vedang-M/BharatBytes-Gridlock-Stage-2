@@ -1,6 +1,7 @@
 services:
   - type: web
     name: parkiq-backend
+    plan: free
     env: python
     buildCommand: |
       unzip -q -o "jan to may police violation_anonymized791b166.zip" -d .
