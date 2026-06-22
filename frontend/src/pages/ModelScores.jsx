@@ -287,12 +287,12 @@ export default function ModelScores() {
           Model Configuration & Methodology
         </div>
         <ul style={{ paddingLeft: '24px', lineHeight: '2', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          <li><strong style={{ color: 'var(--text-primary)' }}>Algorithm:</strong> {metrics.model_name} (A robust Stacking Ensemble combining CatBoost, XGBoost, and LightGBM with a Logistic Regression meta-learner).</li>
-          <li><strong style={{ color: 'var(--text-primary)' }}>Validation:</strong> 5-Fold Stratified CV (Ensures the model generalizes perfectly to unseen data without overfitting).</li>
-          <li><strong style={{ color: 'var(--text-primary)' }}>Feature Engineering:</strong> {metrics.n_features} total features. Replaced raw GPS coordinates with advanced Interaction Features ("traffic_density_index", "peak_severity_risk").</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Algorithm:</strong> {metrics.model_name} (Chosen for its leaf-wise tree growth, which yields superior performance and accuracy on deep spatial splits).</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Validation:</strong> Outer 5-Fold Stratified CV with Inner Loop Early Stopping (Ensures robust real-world generalization without overfitting).</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Feature Engineering:</strong> {metrics.n_features} total features. Engineered advanced spatial-temporal metrics like Moore Neighborhood spatial lag ("lag_violation_count") and Shannon temporal entropy.</li>
           <li><strong style={{ color: 'var(--text-primary)' }}>Target Categories:</strong> {(metrics.categories || []).join(', ')}</li>
-          <li><strong style={{ color: 'var(--text-primary)' }}>Hyperparameter Optimization:</strong> Tuned via Optuna Bayesian Optimization over 20 trials, specifically targeting strict regularization to prevent data leakage.</li>
-          <li><strong style={{ color: 'var(--text-primary)' }}>Spatial Abstraction:</strong> Unsupervised K-Means clustering (15 zones) applied prior to training to eliminate geographic memorization.</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Hyperparameter Optimization:</strong> Tuned via Optuna Bayesian Optimization over 20 trials, specifically targeting strict regularization to prevent spatial data leakage.</li>
+          <li><strong style={{ color: 'var(--text-primary)' }}>Spatial Abstraction:</strong> DBSCAN pre-clustering layer and unsupervised K-Means applied prior to training to eliminate geographic memorization.</li>
         </ul>
       </div>
 
